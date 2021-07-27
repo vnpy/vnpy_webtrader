@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Test</title>
+    </head>
+    <body>
+        <div id=app>
+        <h1>WebSocket Test</h1>
+        <form v-on:submit.prevent>
+            <div>
+                username
+                <input class="username" type="text" id="username" autocomplete="off" v-model="username"/>
+            </div>
+            <div>
+                password
+                <input class="password" type="text" id="password" autocomplete="off" v-model="password"/>
+            </div>
+            <div>
+                <button v-on:click="login">login</button>
+            </div>
+            <div>
+                <button v-on:click="connect">connect</button>
+            </div>
+            
+        </form>
+        <ul id='messages'>
+        </ul>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+        <script src="https://cdn.staticfile.org/vue-resource/1.5.1/vue-resource.min.js"></script>
+        <script>
+            new Vue({
+                el: '#app',
+                data: function() {
+                    return {
+                        TOKEN:"",
+                        username:"",
+                        password:""
+                    }
+                },
+                mounted(){
+                    this.init()
+                },
+                methods: {
+                    init:function(){
+                        if(typeof(WebSocket) === "undefined"){
+                            alert("error socket")
+                        }else{
+                            this.socket = new WebSocket('ws://127.0.0.1:8000/ws/')
+                            this.socket.onopen = this.open
+                            this.socket.onerror = this.error
+                            this.socket.onmessage = this.getMessage
+                        }
+                    },
+                    connect: function(event){
+                        that = this
+                        this.$http.get('/connect',{
+                            headers:{
+                                accept: "application/json",
+                                Authorization: that.TOKEN.token_type + " " + that.TOKEN.access_token
+                            }
+                        }).then(function(res){
+                            console.log("success")   
+                        },function(){
+                            console.log('deal error');
+                        });
+                    },
+                    open: function () {
+                        console.log("socket connected")
+                    },
+                    error: function () {
+                        console.log("connect error")
+                    },
+                    getMessage: function (event) {
+                        console.log(event)
+                        var messages = document.getElementById('messages')
+                        var message = document.createElement('li')
+                        var content = document.createTextNode(event.data)
+                        message.appendChild(content)
+                        messages.appendChild(message)
+                    },
+                    send: function () {
+                        this.socket.send(params)
+                    },
+                    close: function () {
+                        console.log("socket已经关闭")
+                    },
+                    login: function (evevt) {
+                        that = this
+                        pa = new FormData()
+                        pa.append("username", that.username)
+                        pa.append("password", that.password)
+                        this.$http.post("/token",pa).then(function(res){
+                            console.log("login success") 
+                            console.log(res.data) 
+                            that.TOKEN = res.data
+                        },function(){
+                            console.log('login error');
+                        });
+                    }
+                }
+            })
+        </script>
+    </body>
+</html>
