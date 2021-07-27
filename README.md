@@ -35,7 +35,7 @@ python setup.py install
 
 ## 文件功能
 
-* tradingServer.py：基于vnpy.rpc模块实现的交易服务器，包含CTP接口模块
+* tradeServer.py：基于vnpy.rpc模块实现的交易服务器，包含CTP接口模块
 * webServer.py：基于Fastapi实现的Web服务器，内部通过vnpy.rpc客户端来访问交易服务器
 * run.py: 无人值守服务
 
