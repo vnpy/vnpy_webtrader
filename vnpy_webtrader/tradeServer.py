@@ -1,6 +1,4 @@
 """"""
-# from typing import Optional
-
 from vnpy.rpc import RpcServer
 from vnpy.trader.engine import BaseEngine, MainEngine
 from vnpy.trader.event import (
@@ -18,7 +16,6 @@ from vnpy.trader.object import (
     TradeData,
     OrderData,
 )
-
 
 APP_NAME = "RpcService"
 
@@ -83,7 +80,6 @@ class WebEngine(BaseEngine):
         account: AccountData = event.data
         self.server.publish("account", account)
         print("account")
-
 
     def close(self):
         """"""
