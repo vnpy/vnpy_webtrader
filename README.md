@@ -30,7 +30,7 @@ python setup.py install
 
 1. 修改CTP_connect.json中的账号和服务器地址
 2. 修改WEB_setting.json中的网页登录用户名和密码
-3. 打开cmd，运行python run.py
+3. 打开cmd，运行python script\run.py
 4. 打开浏览器，并访问http://127.0.0.1:8000/
 
 ## 文件功能
