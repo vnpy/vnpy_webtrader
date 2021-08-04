@@ -40,11 +40,11 @@ class WebEngine(BaseEngine):
         self.server.register(self.main_engine.send_order)
         self.server.register(self.main_engine.cancel_order)
 
-        self.server.register(self.get_order)
-        self.server.register(self.get_trade)
-        self.server.register(self.get_position)
-        self.server.register(self.get_account)
-        self.server.register(self.get_contract)
+        self.server.register(self.main_engine.get_all_orders)
+        self.server.register(self.main_engine.get_all_trades)
+        self.server.register(self.main_engine.get_all_positions)
+        self.server.register(self.main_engine.get_all_accounts)
+        self.server.register(self.main_engine.get_all_contracts)
 
     def register_event(self) -> None:
         """
@@ -90,78 +90,6 @@ class WebEngine(BaseEngine):
         """
         account: AccountData = event.data
         self.server.publish("account", account)
-
-    def get_order(self, vt_orderid: str):
-        """
-        get target order
-        """
-        tmp = self.main_engine.get_order(vt_orderid)
-        if tmp is None:
-            return("order cannnot be got now")
-        tmp = tmp.__dict__
-
-        tmp["exchange"] = tmp["exchange"].value
-        tmp["type"] = tmp["type"].value
-        tmp["direction"] = tmp["direction"].value
-        tmp["offset"] = tmp["offset"].value
-        tmp["status"] = tmp["status"].value
-        tmp["datetime"] = tmp["datetime"].strftime("%Y-%m-%d %H:%M:%S")
-
-        print(tmp)
-        return tmp
-
-    def get_trade(self, vt_tradeid: str):
-        """
-        gat target trade
-        """
-        tmp = self.main_engine.get_trade(vt_tradeid)
-        if tmp is None:
-            return("trade cannnot be got now")
-        tmp = tmp.__dict__
-
-        tmp["exchange"] = tmp["exchange"].value
-        tmp["direction"] = tmp["direction"].value
-        tmp["offset"] = tmp["offset"].value
-        tmp["datetime"] = tmp["datetime"].strftime("%Y-%m-%d %H:%M:%S")
-
-        print(tmp)
-        return tmp
-
-    def get_position(self, vt_positionid: str):
-        """
-        get target position
-        """
-        tmp = self.main_engine.get_position(vt_positionid)
-        if tmp is None:
-            return("position cannnot be got now")
-        tmp = tmp.__dict__
-
-        tmp["exchange"] = tmp["exchange"].value
-        tmp["direction"] = tmp["direction"].value
-
-        print(tmp)
-        return tmp
-
-    def get_account(self, vt_accountid: str):
-        """
-        get target account
-        """
-        tmp = self.main_engine.get_account(vt_accountid)
-
-        print(tmp)
-        return tmp
-
-    def get_contract(self, vt_symbol: str):
-        """
-        gat target contract
-        """
-        tmp = self.main_engine.get_contract(vt_symbol)
-        if tmp is None:
-            return("contract cannnot be got now")
-        tmp = tmp.__dict__
-
-        print(tmp)
-        return tmp
 
     def close(self):
         """"""
