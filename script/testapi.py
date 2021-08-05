@@ -49,30 +49,30 @@ rest.add_request("post", "/cancel_order", show, data=json.dumps({
     "exchange": "DCE"
     }), headers={"accept": "application/json", "Authorization": "Bearer " + encoded_jwt})
 
-rest.add_request("post", "/account", show, data=json.dumps({
-    "vt_accountid": "CTP.189672"
-    }), headers={"accept": "application/json", "Authorization": "Bearer " + encoded_jwt})
-
 rest.start()
 
 
 # 等待10秒，等待连接成功数据跳动之后，否则无法查询数据
 time.sleep(10)
 
-rest.add_request("post", "/query_order", show, data=json.dumps({
-    "vt_orderid": "CTP.3_1438961297_2"
-    }), headers={"accept": "application/json", "Authorization": "Bearer " + encoded_jwt})
+rest.add_request("get", "/order", show, headers={
+    "accept": "application/json", "Authorization": "Bearer " + encoded_jwt
+    })
 
-rest.add_request("post", "/trade", show, data=json.dumps({
-    "vt_tradeid": "CTP.       95574"
-    }), headers={"accept": "application/json", "Authorization": "Bearer " + encoded_jwt, "Content-Type": "application/json"})
+rest.add_request("get", "/trade", show, headers={
+    "accept": "application/json", "Authorization": "Bearer " + encoded_jwt
+    })
 
-rest.add_request("post", "/position", show, data=json.dumps({
-    "vt_positionid": "eb2110.DCE.多"
-    }), headers={"accept": "application/json", "Authorization": "Bearer " + encoded_jwt})
+rest.add_request("get", "/position", show, headers={
+    "accept": "application/json", "Authorization": "Bearer " + encoded_jwt
+    })
 
-rest.add_request("post", "/contract", show, data=json.dumps({
-    "vt_symbol": "eb2110.DCE"
-    }), headers={"accept": "application/json", "Authorization": "Bearer " + encoded_jwt})
+rest.add_request("get", "/account", show, headers={
+    "accept": "application/json", "Authorization": "Bearer " + encoded_jwt
+    })
+
+rest.add_request("get", "/contract", show, headers={
+    "accept": "application/json", "Authorization": "Bearer " + encoded_jwt
+    })
 
 rest.start()

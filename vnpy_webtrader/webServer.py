@@ -2,6 +2,8 @@
 from typing import Any, List, Optional
 import json
 import asyncio
+import sys
+import os
 from datetime import datetime, timedelta
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status, Depends
@@ -20,15 +22,15 @@ from vnpy.trader.object import OrderRequest, CancelRequest, Exchange, Direction,
 # 创建RPC对象
 rpc = RpcClient()
 # RPC连接地址
-REQ_ADDRESS = 'tcp://127.0.0.1:2014'
-SUB_ADDRESS = 'tcp://127.0.0.1:4102'
+REQ_ADDRESS = sys.argv[1]
+SUB_ADDRESS = sys.argv[2]
 
 # %% fastapi加密与授权
 # 加密使用信息
 # SECRET_KEY 可用 openssl rand -hex 32 生成
-SECRET_KEY = "dfd11067782d62fe888b73eca97bdb0e5b2ddb7e3e6e0fd9d88a302a9b2d0b1a"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = sys.argv[3]
+ALGORITHM = sys.argv[4]
+ACCESS_TOKEN_EXPIRE_MINUTES = int(sys.argv[5])
 # 实例化CryptContext用于处理哈希密码
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # fastapi授权
@@ -36,15 +38,18 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # %% 读取本地登录信息与静态页面
 # 读取web登录信息
-with open("vnpy_webtrader/Web_setting.json", "r", encoding="utf8") as f:
+abs_name = os.path.abspath(__file__)
+dir_name = os.path.dirname(abs_name)
+with open(dir_name + "/Web_setting.json", "r", encoding="utf8") as f:
     WEBSETTING = json.load(f)
     USERNAME = WEBSETTING["username"]
     PASSWORD = WEBSETTING["password"]
 # 读取ctp登录信息
-with open("vnpy_webtrader/CTP_connect.json", "r", encoding="utf8") as f:
-    CTPSETTING = json.load(f)
+# with open(dir_name + "/CTP_connect.json", "r", encoding="utf8") as f:
+#     CTPSETTING = json.load(f)
 # 获取静态页面
-with open("static/index.html") as f:
+index_path = os.path.dirname(dir_name) + "/static/index.html"
+with open(index_path) as f:
     index = f.read()
 
 
@@ -85,41 +90,6 @@ class CRequest(BaseModel):
     exchange: str
 
 
-class QOrder(BaseModel):
-    """"""
-    # gateway_name: str
-    # orderid: str
-    vt_orderid : str
-
-
-class QTrade(BaseModel):
-    """"""
-    # gateway_name: str
-    # tradeid: str
-    vt_tradeid : str
-
-
-class QPosition(BaseModel):
-    """"""
-    # vt_symbol: str
-    # direction: str
-    vt_positionid : str
-
-
-class QAccount(BaseModel):
-    """"""
-    # gateway_name: str
-    # accountid: str
-    vt_accountid : str
-
-
-class QContract(BaseModel):
-    """"""
-    # symbol: str
-    # exchange: str
-    vt_symbol : str
-
-
 # %% fastapi加密函数
 def verify_password(plain_password, hashed_password):
     """"""
@@ -154,7 +124,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
-def get_access(token: str = Depends(oauth2_scheme)):
+async def get_access(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -187,14 +157,14 @@ app.add_middleware(
 
 # 主页面
 @app.get("/")
-async def get():
+def get():
     """获取主页面"""
     return HTMLResponse(index)
 
 
 # token验证
 @app.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     """"""
     web_username = authenticate_user(WEBSETTING, form_data.username, form_data.password)
     if not web_username:
@@ -211,21 +181,23 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 # 连接交易服务器
-@app.get("/connect")
-async def connect_to_trade_server(token: str = Depends(oauth2_scheme)):
-    """连接"""
-    get_access(token)
-    rpc.connect(CTPSETTING, "CTP")
+# @app.get("/connect")
+# async def connect_to_trade_server(access: bool = Depends(get_access)):
+#     """连接"""
+#     if not access:
+#         return "Not authenticated"
+#     rpc.connect(CTPSETTING, "CTP")
 
 
 # 发送订单
 @app.post("/send_order")
-async def send_order(order: Order, token: str = Depends(oauth2_scheme)):
+def send_order(order: Order, access: bool = Depends(get_access)):
     """"""
-    get_access(token)
+    if not access:
+        return "Not authenticated"
     data = OrderRequest(
         order.symbol,
-        order.exchange,
+        Exchange(order.exchange),
         order.direction,
         order.type,
         order.volume,
@@ -239,67 +211,117 @@ async def send_order(order: Order, token: str = Depends(oauth2_scheme)):
 
 # 取消订单
 @app.post("/cancel_order")
-async def cancel_order(cq: CRequest, token: str = Depends(oauth2_scheme)):
+def cancel_order(cq: CRequest, access: bool = Depends(get_access)):
     """"""
-    get_access(token)
+    if not access:
+        return "Not authenticated"
     data = CancelRequest(cq.orderid, cq.symbol, Exchange(cq.exchange))
     tmp = rpc.cancel_order(data, "CTP")
     return tmp
 
 
 # 查询订单
-@app.post("/query_order")
-async def query_order(qorder: QOrder, token: str = Depends(oauth2_scheme)):
+@app.get("/order")
+def query_order(access: bool = Depends(get_access)):
     """"""
-    get_access(token)
-    # vt_orderid = f"{qorder.gateway_name}.{qorder.orderid}"
-    vt_orderid = qorder.vt_orderid
-    tmp = rpc.get_order(vt_orderid)
-    return tmp
+    if not access:
+        return "Not authenticated"
+    tmp = rpc.get_all_orders()
+    if tmp is None:
+        return("order cannnot be got now")
+
+    results = {}
+    for i in tmp:
+        item = i
+        item = item.__dict__
+        item["exchange"] = item["exchange"].value
+        item["type"] = item["type"].value
+        item["direction"] = item["direction"].value
+        item["offset"] = item["offset"].value
+        item["status"] = item["status"].value
+        item["datetime"] = item["datetime"].strftime("%Y-%m-%d %H:%M:%S")
+        results[item["orderid"]] = item
+    print(results)
+    return results
 
 
 # 查询交易
-@app.post("/trade")
-async def query_trade(qtrade: QTrade, token: str = Depends(oauth2_scheme)):
+@app.get("/trade")
+def query_trade(access: bool = Depends(get_access)):
     """"""
-    get_access(token)
-    # vt_tradeid = f"{qtrade.gateway_name}.{qtrade.tradeid}"
-    vt_tradeid = qtrade.vt_tradeid
-    tmp = rpc.get_trade(vt_tradeid)
-    return tmp
+    if not access:
+        return "Not authenticated"
+    tmp = rpc.get_all_trades()
+    if tmp is None:
+        return("trade cannnot be got now")
+
+    results = {}
+    for i in tmp:
+        item = i
+        item = item.__dict__
+        item["exchange"] = item["exchange"].value
+        item["direction"] = item["direction"].value
+        item["offset"] = item["offset"].value
+        item["datetime"] = item["datetime"].strftime("%Y-%m-%d %H:%M:%S")
+        results[item["tradeid"]] = item
+    print(results)
+    return results
 
 
 # 查询持仓
-@app.post("/position")
-async def query_position(qposition: QPosition, token: str = Depends(oauth2_scheme)):
+@app.get("/position")
+def query_position(access: bool = Depends(get_access)):
     """"""
-    get_access(token)
-    # vt_positionid = f"{qposition.vt_symbol}.{qposition.direction}"
-    vt_positionid = qposition.vt_positionid
-    tmp = rpc.get_position(vt_positionid)
-    return tmp
+    if not access:
+        return "Not authenticated"
+    tmp = rpc.get_all_positions()
+    if tmp is None:
+        return("position cannnot be got now")
+
+    results = {}
+    for i in tmp:
+        item = i
+        item = item.__dict__
+        item["exchange"] = item["exchange"].value
+        item["direction"] = item["direction"].value
+        results[item["vt_positionid"]] = item
+    print(results)
+    return results
 
 
 # 查询账户
-@app.post("/account")
-async def query_account(qaccount: QAccount, token: str = Depends(oauth2_scheme)):
+@app.get("/account")
+def query_account(access: bool = Depends(get_access)):
     """"""
-    get_access(token)
-    # vt_accountid = f"{qaccount.gateway_name}.{qaccount.accountid}"
-    vt_accountid = qaccount.vt_accountid
-    tmp = rpc.get_account(vt_accountid)
+    if not access:
+        return "Not authenticated"
+    tmp = rpc.get_all_accounts()
+    if tmp is None:
+        return("contract cannnot be got now")
+
+    print(tmp)
     return tmp
 
 
 # 查询合约
-@app.post("/contract")
-async def query_contract(qcontract: QContract, token: str = Depends(oauth2_scheme)):
+@app.get("/contract")
+def query_contract(access: bool = Depends(get_access)):
     """"""
-    get_access(token)
-    # vt_symbol = f"{qcontract.symbol}.{qcontract.exchange}"
-    vt_symbol = qcontract.vt_symbol
-    tmp = rpc.get_contract(vt_symbol)
-    return tmp
+    if not access:
+        return "Not authenticated"
+    tmp = rpc.get_all_contracts()
+    if tmp is None:
+        return("contract cannnot be got now")
+
+    results = {}
+    for i in tmp[0:100]:
+        item = i
+        item = item.__dict__
+        item["exchange"] = item["exchange"].value
+        item["product"] = item["product"].value
+        results[item["symbol"]] = item
+    print(results)
+    return results
 
 
 # %% websocket内容
@@ -352,8 +374,12 @@ async def websocket_endpoint(websocket: WebSocket):
 def calldata(topic: str, data: Any):
     """"""
     global individual_websocket, _loop, manager
-    print("websock", data.__dict__)
-    asyncio.run_coroutine_threadsafe(manager.broadcast(str(data)), _loop)
+    print(f"websocket-{topic}-{data}")
+    try:
+        broadcast_data = f"{topic}-{data.__dict__}"
+        asyncio.run_coroutine_threadsafe(manager.broadcast(str(broadcast_data)), _loop)
+    except AttributeError:
+        print("please connect to webstocket")
 
 
 # 添加回调函数
@@ -366,6 +392,7 @@ def main():
     global rpc
     rpc.subscribe_topic("")
     rpc.start(REQ_ADDRESS, SUB_ADDRESS)
+
     uvicorn.run(app, host="127.0.0.1", port=8000)
 
 
