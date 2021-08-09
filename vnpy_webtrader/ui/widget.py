@@ -1,7 +1,8 @@
+""""""
 from vnpy.event import EventEngine
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.ui import QtWidgets
-from ..engine import APP_NAME
+from vnpy_webtrader.engine import APP_NAME
 
 
 class WebTrade(QtWidgets.QDialog):
@@ -25,16 +26,16 @@ class WebTrade(QtWidgets.QDialog):
         self.active_combo = QtWidgets.QComboBox()
         self.active_combo.addItems(["停止", "启动"])
 
-        self.username = RiskManagerSpinBox()
-        self.password = RiskManagerSpinBox()
-        self.req_address = RiskManagerSpinBox()
-        self.sub_address = RiskManagerSpinBox()
-        self.secret_key = RiskManagerSpinBox()
-        self.algorithm = RiskManagerSpinBox()
-        self.access_token_expire_minutes = RiskManagerSpinBox()
+        self.username = WebTradeLineEdit("test")
+        self.password = WebTradeLineEdit("test")
+        self.req_address = WebTradeLineEdit("tcp://127.0.0.1:2014")
+        self.sub_address = WebTradeLineEdit("tcp://127.0.0.1:4102")
+        self.secret_key = WebTradeLineEdit("dfd11067782d62fe888b73eca97bdb0e5b2ddb7e3e6e0fd9d88a302a9b2d0b1a")
+        self.algorithm = WebTradeLineEdit("HS256")
+        self.access_token_expire_minutes = WebTradeLineEdit("30")
 
-        save_button = QtWidgets.QPushButton("保存")
-        save_button.clicked.connect(self.save_setting)
+        start_button = QtWidgets.QPushButton("启动")
+        start_button.clicked.connect(self.start_webserve)
 
         # Form layout
         form = QtWidgets.QFormLayout()
@@ -46,66 +47,46 @@ class WebTrade(QtWidgets.QDialog):
         form.addRow("SECRET_KEY", self.secret_key)
         form.addRow("ALGORITHM", self.algorithm)
         form.addRow("TOKEN_MINUTES", self.access_token_expire_minutes)
-        form.addRow(save_button)
+        form.addRow(start_button)
 
         self.setLayout(form)
 
         # Set Fix Size
         hint = self.sizeHint()
         self.setFixedSize(hint.width() * 1.2, hint.height())
+        self.show()
 
-    def save_setting(self):
+    def start_webserve(self):
         """"""
         active_text = self.active_combo.currentText()
         if active_text == "启动":
             active = True
+            self.active_combo.setCurrentIndex(0)
         else:
             active = False
+            self.active_combo.setCurrentIndex(1)
 
         setting = {
             "active": active,
-            "username": self.username.value(),
-            "password": self.password.value(),
-            "req_address": self.req_address.value(),
-            "sub_address": self.sub_address.value(),
-            "secret_key": self.secret_key.value(),
-            "algorithm": self.algorithm.value(),
-            "access_token_expire_minutes": self.access_token_expire_minutes.value(),
+            "username": self.username.text(),
+            "password": self.password.text(),
+            "req_address": self.req_address.text(),
+            "sub_address": self.sub_address.text(),
+            "secret_key": self.secret_key.text(),
+            "algorithm": self.algorithm.text(),
+            "access_token_expire_minutes": self.access_token_expire_minutes.text(),
         }
 
-        self.wt_engine.update_setting(setting)
-        self.wt_engine.save_setting()
-
-        self.close()
-
-    def update_setting(self):
-        """"""
-        setting = self.wt_engine.get_setting()
-        if setting["active"]:
-            self.active_combo.setCurrentIndex(1)
-        else:
-            self.active_combo.setCurrentIndex(0)
-
-        self.username.setValue(setting["username"])
-        self.password.setValue(setting["password"])
-        self.req_address.setValue(setting["req_address"])
-        self.sub_address.setValue(setting["sub_address"])
-        self.secret_key.setValue(setting["secret_key"])
-        self.algorithm.setValue(setting["algorithm"])
-        self.access_token_expire_minutes.setValue(setting["access_token_expire_minutes"])
+        self.wt_engine.start_trade(setting)
 
     def exec_(self):
         """"""
-        self.update_setting()
         super().exec_()
 
 
-class RiskManagerSpinBox(QtWidgets.QSpinBox):
+class WebTradeLineEdit(QtWidgets.QLineEdit):
     """"""
-
-    def __init__(self, value: int = 0):
+    def __init__(self, value: str = "a"):
         """"""
         super().__init__()
-        self.setMinimum(0)
-        self.setMaximum(1000000)
-        self.setValue(value)
+        self.setText(value)

@@ -27,7 +27,7 @@ from vnpy.trader.app import BaseApp
 from .engine import WebTradeEngine, APP_NAME
 
 
-class RiskManagerApp(BaseApp):
+class WebTradeApp(BaseApp):
     """"""
     app_name = APP_NAME
     app_module = __module__

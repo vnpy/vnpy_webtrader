@@ -42,7 +42,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 # %% 读取静态页面
 abs_name = os.path.abspath(__file__)
 dir_name = os.path.dirname(abs_name)
-index_path = os.path.dirname(dir_name) + "/static/index.html"
+index_path = os.path.dirname(dir_name) + "/vnpy_webtrader/static/index.html"
 with open(index_path) as f:
     index = f.read()
 
@@ -172,15 +172,6 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
         data={"sub": web_username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
-
-
-# 连接交易服务器
-# @app.get("/connect")
-# async def connect_to_trade_server(access: bool = Depends(get_access)):
-#     """连接"""
-#     if not access:
-#         return "Not authenticated"
-#     rpc.connect(CTPSETTING, "CTP")
 
 
 # 发送订单

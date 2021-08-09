@@ -4,3 +4,4 @@ ignore =
     E501 line too long, fixed by black
     W503 line break before binary operator
     E123 closing bracket does not match indentation of opening bracket's line
+    
