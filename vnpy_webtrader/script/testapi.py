@@ -31,7 +31,7 @@ def show(a, b):
 rest.init("http://127.0.0.1:8000")
 # rest.add_request("get","/", dict, headers={"accept": "application/json"})
 rest.add_request("post", "/token", show, data={"username": "test", "password": "test"}, headers={"accept": "application/json"})
-rest.add_request("get", "/connect", show, headers={"accept": "application/json", "Authorization": "Bearer " + encoded_jwt})
+# rest.add_request("get", "/connect", show, headers={"accept": "application/json", "Authorization": "Bearer " + encoded_jwt})
 rest.add_request("post", "/send_order", show, data=json.dumps({
     "symbol": "eb2110",
     "exchange": "DCE",

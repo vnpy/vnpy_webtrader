@@ -1,6 +1,5 @@
 """"""
 from typing import Any, List, Optional
-import json
 import asyncio
 import sys
 import os
@@ -18,37 +17,32 @@ import uvicorn
 from vnpy.rpc import RpcClient
 from vnpy.trader.object import OrderRequest, CancelRequest, Exchange, Direction, OrderType, Offset
 
+# 获取设定的用户登录名和密码
+USERNAME = sys.argv[1]
+PASSWORD = sys.argv[2]
+
 # %% rpc
 # 创建RPC对象
 rpc = RpcClient()
 # RPC连接地址
-REQ_ADDRESS = sys.argv[1]
-SUB_ADDRESS = sys.argv[2]
+REQ_ADDRESS = sys.argv[3]
+SUB_ADDRESS = sys.argv[4]
 
 # %% fastapi加密与授权
 # 加密使用信息
 # SECRET_KEY 可用 openssl rand -hex 32 生成
-SECRET_KEY = sys.argv[3]
-ALGORITHM = sys.argv[4]
-ACCESS_TOKEN_EXPIRE_MINUTES = int(sys.argv[5])
+SECRET_KEY = sys.argv[5]
+ALGORITHM = sys.argv[6]
+ACCESS_TOKEN_EXPIRE_MINUTES = int(sys.argv[7])
 # 实例化CryptContext用于处理哈希密码
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # fastapi授权
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# %% 读取本地登录信息与静态页面
-# 读取web登录信息
+# %% 读取静态页面
 abs_name = os.path.abspath(__file__)
 dir_name = os.path.dirname(abs_name)
-with open(dir_name + "/Web_setting.json", "r", encoding="utf8") as f:
-    WEBSETTING = json.load(f)
-    USERNAME = WEBSETTING["username"]
-    PASSWORD = WEBSETTING["password"]
-# 读取ctp登录信息
-# with open(dir_name + "/CTP_connect.json", "r", encoding="utf8") as f:
-#     CTPSETTING = json.load(f)
-# 获取静态页面
-index_path = os.path.dirname(dir_name) + "/static/index.html"
+index_path = os.path.dirname(dir_name) + "/vnpy_webtrader/static/index.html"
 with open(index_path) as f:
     index = f.read()
 
@@ -101,9 +95,9 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def authenticate_user(web_setting, username: str, password: str):
+def authenticate_user(current_username, username: str, password: str):
     """"""
-    web_username = web_setting["username"]
+    web_username = current_username
     hashed_password = get_password_hash(PASSWORD)
     if web_username != username:
         return False
@@ -166,7 +160,7 @@ def get():
 @app.post("/token", response_model=Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     """"""
-    web_username = authenticate_user(WEBSETTING, form_data.username, form_data.password)
+    web_username = authenticate_user(USERNAME, form_data.username, form_data.password)
     if not web_username:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -178,15 +172,6 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
         data={"sub": web_username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
-
-
-# 连接交易服务器
-# @app.get("/connect")
-# async def connect_to_trade_server(access: bool = Depends(get_access)):
-#     """连接"""
-#     if not access:
-#         return "Not authenticated"
-#     rpc.connect(CTPSETTING, "CTP")
 
 
 # 发送订单
@@ -384,6 +369,12 @@ def calldata(topic: str, data: Any):
 
 # 添加回调函数
 rpc.callback = calldata
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    print("rpc exit")
+    rpc.stop()
 
 
 # %% 主运行函数

@@ -41,14 +41,7 @@
                 },
                 methods: {
                     init:function(){
-                        if(typeof(WebSocket) === "undefined"){
-                            alert("error socket")
-                        }else{
-                            this.socket = new WebSocket('ws://127.0.0.1:8000/ws/')
-                            this.socket.onopen = this.open
-                            this.socket.onerror = this.error
-                            this.socket.onmessage = this.getMessage
-                        }
+
                     },
                     connect: function(event){
                         that = this
@@ -58,7 +51,7 @@
                                 Authorization: that.TOKEN.token_type + " " + that.TOKEN.access_token
                             }
                         }).then(function(res){
-                            console.log("success")   
+                            console.log("success");
                         },function(){
                             console.log('deal error');
                         });
@@ -92,6 +85,14 @@
                             console.log("login success") 
                             console.log(res.data) 
                             that.TOKEN = res.data
+                            if(typeof(WebSocket) === "undefined"){
+                                alert("error socket")
+                            }else{
+                                that.socket = new WebSocket('ws://127.0.0.1:8000/ws/')
+                                that.socket.onopen = that.open
+                                that.socket.onerror = that.error
+                                that.socket.onmessage = that.getMessage
+                            } 
                         },function(){
                             console.log('login error');
                         });
