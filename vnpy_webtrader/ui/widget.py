@@ -19,7 +19,7 @@ class WebManager(QtWidgets.QDialog):
         self.init_ui()
 
     def init_ui(self):
-        """"""
+        """初始化界面"""
         self.setWindowTitle("Web服务器")
 
         self.username = QtWidgets.QLineEdit("test")
@@ -48,12 +48,9 @@ class WebManager(QtWidgets.QDialog):
         self.show()
 
     def start(self):
-        """"""
+        """启动引擎"""
         self.web_engine.start_server(
             self.req_address.text(),
             self.sub_address.text(),
         )
         self.start_button.setDisabled(True)
-
-
-
