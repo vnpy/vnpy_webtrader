@@ -33,7 +33,7 @@ class WebTradeApp(BaseApp):
     app_name = APP_NAME
     app_module = __module__
     app_path = Path(__file__).parent
-    display_name = "Web服务器"
+    display_name = "Web服务"
     engine_class = WebEngine
     widget_name = "WebManager"
     icon_name = "web.ico"

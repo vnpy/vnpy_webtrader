@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import Any, List, Optional
 import asyncio
-import sys
 import json
 import os
 from datetime import datetime, timedelta
@@ -13,7 +12,6 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-import uvicorn
 
 from vnpy.rpc import RpcClient
 from vnpy.trader.object import (
@@ -32,17 +30,20 @@ from vnpy.trader.constant import (
     OrderType,
     Offset,
 )
+from vnpy.trader.utility import load_json, get_file_path
+
 
 # Web服务运行配置
-# USERNAME = sys.argv[1]              # 用户名
-# PASSWORD = sys.argv[2]              # 密码
-# REQ_ADDRESS = sys.argv[3]           # 请求服务地址
-# SUB_ADDRESS = sys.argv[4]           # 订阅服务地址
+SETTING_FILENAME = "web_trader_setting.json"
+SETTING_FILEPATH = get_file_path(SETTING_FILENAME)
 
-USERNAME = "test"                       # 用户名
-PASSWORD = "test"                       # 密码
-REQ_ADDRESS = "tcp://127.0.0.1:2014"    # 请求服务地址
-SUB_ADDRESS = "tcp://127.0.0.1:4102"    # 订阅服务地址
+setting = load_json(SETTING_FILEPATH)
+USERNAME = setting["username"]              # 用户名
+PASSWORD = setting["password"]              # 密码
+REQ_ADDRESS = setting["req_address"]        # 请求服务地址
+SUB_ADDRESS = setting["sub_address"]        # 订阅服务地址
+
+
 SECRET_KEY = "test"                     # 数据加密密钥
 ALGORITHM = "HS256"                     # 加密算法
 ACCESS_TOKEN_EXPIRE_MINUTES = 30        # 令牌超时（分钟）
@@ -326,12 +327,3 @@ def shutdown_event() -> None:
     """应用停止事件"""
     print("rpc_client exit")
     rpc_client.stop()
-
-
-def main():
-    """主运行函数"""
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)
-
-
-if __name__ == "__main__":
-    main()
