@@ -2,8 +2,8 @@ from vnpy.event import EventEngine
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.ui import MainWindow, create_qapp
 from vnpy.gateway.ctp import CtpGateway
-# from vnpy.trader.app.webtrader import WebTradeApp
-from vnpy_webtrader.app import WebTradeApp
+
+from vnpy_webtrader import WebTradeApp
 
 
 def main():

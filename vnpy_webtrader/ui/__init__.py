@@ -1,1 +1,1 @@
-from .widget import WebTrade
+from .widget import WebManager

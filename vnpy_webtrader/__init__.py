@@ -24,15 +24,16 @@ from pathlib import Path
 
 from vnpy.trader.app import BaseApp
 
-from .engine import WebTradeEngine, APP_NAME
+from .engine import WebEngine, APP_NAME
 
 
 class WebTradeApp(BaseApp):
     """"""
+
     app_name = APP_NAME
     app_module = __module__
     app_path = Path(__file__).parent
-    display_name = "网页端服务"
-    engine_class = WebTradeEngine
-    widget_name = "WebTrade"
-    icon_name = ""
+    display_name = "Web服务器"
+    engine_class = WebEngine
+    widget_name = "WebManager"
+    icon_name = "web.ico"

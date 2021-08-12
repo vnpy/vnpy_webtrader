@@ -31,6 +31,8 @@ class WebEngine(BaseEngine):
         self.server.register(self.main_engine.send_order)
         self.server.register(self.main_engine.cancel_order)
 
+        self.server.register(self.main_engine.get_contract)
+        self.server.register(self.main_engine.get_order)
         self.server.register(self.main_engine.get_all_orders)
         self.server.register(self.main_engine.get_all_trades)
         self.server.register(self.main_engine.get_all_positions)
