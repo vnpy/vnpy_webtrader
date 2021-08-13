@@ -50,7 +50,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30        # 令牌超时（分钟）
 
 
 # 实例化CryptContext用于处理哈希密码
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
 
 # fastapi授权
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
