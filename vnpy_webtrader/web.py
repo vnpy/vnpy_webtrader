@@ -6,7 +6,7 @@ import os
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status, Depends, Query
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -277,11 +277,30 @@ def get_all_contracts(access: bool = Depends(get_access)) -> list:
 active_websockets: List[WebSocket] = []
 event_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
 
+async def get_websocket_access(
+    websocket: WebSocket,
+    token: Optional[str] = Query(None)
+):
+    """Websocket鉴权"""
+    if token is None:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return False
+    else:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None or username != USERNAME:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return False
+    return True
+
 
 # websocket传递数据
 @app.websocket("/ws/")
-async def websocket_endpoint(websocket: WebSocket) -> None:
+async def websocket_endpoint(websocket: WebSocket, access: bool = Depends(get_websocket_access)) -> None:
     """Weboskcet连接处理"""
+    if not access:
+        return "Not authenticated"
+        
     await websocket.accept()
     active_websockets.append(websocket)
 

@@ -88,7 +88,7 @@
                             if(typeof(WebSocket) === "undefined"){
                                 alert("error socket")
                             }else{
-                                that.socket = new WebSocket('ws://127.0.0.1:8000/ws/')
+                                that.socket = new WebSocket("ws://127.0.0.1:8000/ws/?token=" + that.TOKEN.access_token)
                                 that.socket.onopen = that.open
                                 that.socket.onerror = that.error
                                 that.socket.onmessage = that.getMessage
