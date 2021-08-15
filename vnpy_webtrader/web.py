@@ -52,10 +52,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30        # 令牌超时（分钟）
 # 实例化CryptContext用于处理哈希密码
 pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
 
-# fastapi授权
+# FastAPI密码鉴权工具
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-
+# RPC客户端
 rpc_client: RpcClient = None
 
 
@@ -107,6 +107,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 
 async def get_access(token: str = Depends(oauth2_scheme)):
+    """REST鉴权"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -119,8 +120,10 @@ async def get_access(token: str = Depends(oauth2_scheme)):
             raise credentials_exception
     except JWTError:
         raise credentials_exception
+
     if username != USERNAME:
         raise credentials_exception
+
     return True
 
 
@@ -274,8 +277,12 @@ def get_all_contracts(access: bool = Depends(get_access)) -> list:
     return [to_dict(contract) for contract in contracts]
 
 
+# 活动状态的Websocket连接
 active_websockets: List[WebSocket] = []
+
+# 全局事件循环
 event_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+
 
 async def get_websocket_access(
     websocket: WebSocket,
@@ -300,7 +307,7 @@ async def websocket_endpoint(websocket: WebSocket, access: bool = Depends(get_we
     """Weboskcet连接处理"""
     if not access:
         return "Not authenticated"
-        
+
     await websocket.accept()
     active_websockets.append(websocket)
 
