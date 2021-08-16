@@ -27,7 +27,7 @@ from vnpy.trader.app import BaseApp
 from .engine import WebEngine, APP_NAME
 
 
-class WebTradeApp(BaseApp):
+class WebTraderApp(BaseApp):
     """"""
 
     app_name = APP_NAME
