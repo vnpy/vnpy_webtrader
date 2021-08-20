@@ -3,7 +3,7 @@ from vnpy.trader.engine import MainEngine
 from vnpy.trader.ui import MainWindow, create_qapp
 from vnpy.gateway.ctp import CtpGateway
 
-from vnpy_webtrader import WebTradeApp
+from vnpy_webtrader import WebTraderApp
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     main_engine = MainEngine(event_engine)
 
     main_engine.add_gateway(CtpGateway)
-    main_engine.add_app(WebTradeApp)
+    main_engine.add_app(WebTraderApp)
 
     main_window = MainWindow(main_engine, event_engine)
     main_window.showMaximized()
