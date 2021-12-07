@@ -33,11 +33,15 @@ class WebManager(QtWidgets.QWidget):
         password = setting.get("password", "vnpy")
         req_address = setting.get("req_address", "tcp://127.0.0.1:2014")
         sub_address = setting.get("sub_address", "tcp://127.0.0.1:4102")
+        host = setting.get("host", "127.0.0.1")
+        port = setting.get("port", "8000")
 
         self.username_line = QtWidgets.QLineEdit(username)
         self.password_line = QtWidgets.QLineEdit(password)
         self.req_line = QtWidgets.QLineEdit(req_address)
         self.sub_line = QtWidgets.QLineEdit(sub_address)
+        self.host = QtWidgets.QLineEdit(host)
+        self.port = QtWidgets.QLineEdit(port)
 
         self.start_button = QtWidgets.QPushButton("启动")
         self.start_button.clicked.connect(self.start)
@@ -50,6 +54,8 @@ class WebManager(QtWidgets.QWidget):
         form.addRow("密码", self.password_line)
         form.addRow("请求地址", self.req_line)
         form.addRow("请阅地址", self.sub_line)
+        form.addRow("监听地址", self.host)
+        form.addRow("监听端口", self.port)
         form.addRow(self.start_button)
 
         hbox = QtWidgets.QHBoxLayout()
@@ -65,13 +71,17 @@ class WebManager(QtWidgets.QWidget):
         password: str = self.password_line.text()
         req_address: str = self.req_line.text()
         sub_address: str = self.sub_line.text()
+        host: str = self.host.text()
+        port: str = self.port.text()
 
         # 保存配置
         setting = {
             "username": username,
             "password": password,
             "req_address": req_address,
-            "sub_address": sub_address
+            "sub_address": sub_address,
+            "host": host,
+            "port": port
         }
         save_json(self.setting_filepath, setting)
 
@@ -93,6 +103,8 @@ class WebManager(QtWidgets.QWidget):
             "-m"
             "uvicorn",
             "vnpy_webtrader.web:app",
+            f"--host={host}",
+            f"--port={port}",
             "--reload"
         ]
         self.process.start(sys.executable, cmd)
@@ -106,6 +118,8 @@ class WebManager(QtWidgets.QWidget):
             self.password_line,
             self.req_line,
             self.sub_line,
+            self.host,
+            self.port,
             self.start_button
         ]:
             w.setEnabled(False)
