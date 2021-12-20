@@ -118,8 +118,8 @@ class WebManager(QtWidgets.QWidget):
             self.password_line,
             self.req_line,
             self.sub_line,
-            self.host,
-            self.port,
+            self.host_line,
+            self.port_line,
             self.start_button
         ]:
             w.setEnabled(False)
