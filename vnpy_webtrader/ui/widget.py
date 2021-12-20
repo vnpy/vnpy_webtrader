@@ -40,8 +40,8 @@ class WebManager(QtWidgets.QWidget):
         self.password_line = QtWidgets.QLineEdit(password)
         self.req_line = QtWidgets.QLineEdit(req_address)
         self.sub_line = QtWidgets.QLineEdit(sub_address)
-        self.host = QtWidgets.QLineEdit(host)
-        self.port = QtWidgets.QLineEdit(port)
+        self.host_line = QtWidgets.QLineEdit(host)
+        self.port_line = QtWidgets.QLineEdit(port)
 
         self.start_button = QtWidgets.QPushButton("启动")
         self.start_button.clicked.connect(self.start)
@@ -54,8 +54,8 @@ class WebManager(QtWidgets.QWidget):
         form.addRow("密码", self.password_line)
         form.addRow("请求地址", self.req_line)
         form.addRow("请阅地址", self.sub_line)
-        form.addRow("监听地址", self.host)
-        form.addRow("监听端口", self.port)
+        form.addRow("监听地址", self.host_line)
+        form.addRow("监听端口", self.port_line)
         form.addRow(self.start_button)
 
         hbox = QtWidgets.QHBoxLayout()
@@ -71,8 +71,8 @@ class WebManager(QtWidgets.QWidget):
         password: str = self.password_line.text()
         req_address: str = self.req_line.text()
         sub_address: str = self.sub_line.text()
-        host: str = self.host.text()
-        port: str = self.port.text()
+        host: str = self.host_line.text()
+        port: str = self.port_line.text()
 
         # 保存配置
         setting = {
