@@ -1,11 +1,11 @@
-# vn.py框架的Web服务模块
+# VeighNa框架的Web服务模块
 
 <p align="center">
   <img src ="https://vnpy.oss-cn-shanghai.aliyuncs.com/vnpy-logo.png"/>
 </p>
 
 <p align="center">
-    <img src ="https://img.shields.io/badge/version-1.0.3-blueviolet.svg"/>
+    <img src ="https://img.shields.io/badge/version-1.0.4-blueviolet.svg"/>
     <img src ="https://img.shields.io/badge/platform-windows|linux|macos-yellow.svg"/>
     <img src ="https://img.shields.io/badge/python-3.7|3.8|3.9|3.10-blue.svg" />
     <img src ="https://img.shields.io/github/license/vnpy/vnpy.svg?color=orange"/>
@@ -15,17 +15,25 @@
 
 针对B-S架构需求设计的Web服务应用模块，实现了提供主动函数调用（REST）和被动数据推送（Websocket）的Web服务器。
 
-目前仅提供了基础的交易和管理接口，用户根据自己的需求扩展支持其他vn.py应用模块的Web接口（如CTA策略自动交易等）。
+目前仅提供了基础的交易和管理接口，用户根据自己的需求扩展支持其他VeighNa应用模块的Web接口（如CTA策略自动交易等）。
 
 ## 安装
 
-安装需要基于3.0.0版本以上的[VN Studio](https://www.vnpy.com)。
+安装环境推荐基于3.0.0版本以上的【[**VeighNa Studio**](https://www.vnpy.com)】。
 
-下载解压后在cmd运行：
+直接使用pip命令：
 
 ```
-pip install -e .
+pip install vnpy_webtrader
 ```
+
+
+或者下载源代码后，解压后在cmd中运行：
+
+```
+pip install .
+```
+
 
 ## 架构
 
