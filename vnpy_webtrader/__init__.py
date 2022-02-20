@@ -36,4 +36,4 @@ class WebTraderApp(BaseApp):
     display_name = "Web服务"
     engine_class = WebEngine
     widget_name = "WebManager"
-    icon_name = "web.ico"
+    icon_name = str(app_path.joinpath("ui", "web.ico"))
