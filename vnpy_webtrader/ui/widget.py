@@ -53,7 +53,7 @@ class WebManager(QtWidgets.QWidget):
         form.addRow("用户名", self.username_line)
         form.addRow("密码", self.password_line)
         form.addRow("请求地址", self.req_line)
-        form.addRow("请阅地址", self.sub_line)
+        form.addRow("订阅地址", self.sub_line)
         form.addRow("监听地址", self.host_line)
         form.addRow("监听端口", self.port_line)
         form.addRow(self.start_button)
