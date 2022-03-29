@@ -10,22 +10,22 @@ from vnpy.trader.event import (
 from vnpy.event import EventEngine, Event
 
 
-APP_NAME = "RpcService"
+APP_NAME: str = "RpcService"
 
 
 class WebEngine(BaseEngine):
     """Web服务引擎"""
 
-    def __init__(self, main_engine: MainEngine, event_engine: EventEngine):
+    def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
         """"""
         super().__init__(main_engine, event_engine, APP_NAME)
 
-        self.server = RpcServer()
+        self.server: RpcServer = RpcServer()
 
         self.init_server()
         self.register_event()
 
-    def init_server(self):
+    def init_server(self) -> None:
         """初始化RPC服务器"""
         self.server.register(self.main_engine.connect)
         self.server.register(self.main_engine.subscribe)
