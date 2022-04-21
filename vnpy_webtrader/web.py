@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, List, Mapping, Optional
 import asyncio
 import json
 import os
@@ -36,19 +36,19 @@ from vnpy.trader.utility import load_json, get_file_path
 
 
 # Web服务运行配置
-SETTING_FILENAME: str = "web_trader_setting.json"
-SETTING_FILEPATH: Path = get_file_path(SETTING_FILENAME)
+SETTING_FILENAME = "web_trader_setting.json"
+SETTING_FILEPATH = get_file_path(SETTING_FILENAME)
 
 setting: dict = load_json(SETTING_FILEPATH)
-USERNAME: str = setting["username"]              # 用户名
-PASSWORD: str = setting["password"]              # 密码
-REQ_ADDRESS: str = setting["req_address"]        # 请求服务地址
-SUB_ADDRESS: str = setting["sub_address"]        # 订阅服务地址
+USERNAME = setting["username"]              # 用户名
+PASSWORD = setting["password"]              # 密码
+REQ_ADDRESS = setting["req_address"]        # 请求服务地址
+SUB_ADDRESS = setting["sub_address"]        # 订阅服务地址
 
 
-SECRET_KEY: str = "test"                     # 数据加密密钥
-ALGORITHM: str = "HS256"                     # 加密算法
-ACCESS_TOKEN_EXPIRE_MINUTES: int = 30        # 令牌超时（分钟）
+SECRET_KEY = "test"                     # 数据加密密钥
+ALGORITHM = "HS256"                     # 加密算法
+ACCESS_TOKEN_EXPIRE_MINUTES = 30        # 令牌超时（分钟）
 
 
 # 实例化CryptContext用于处理哈希密码
@@ -116,7 +116,7 @@ async def get_access(token: str = Depends(oauth2_scheme)) -> bool:
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload: Mapping = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -136,10 +136,10 @@ app: FastAPI = FastAPI()
 @app.get("/")
 def index() -> HTMLResponse:
     """获取主页面"""
-    abs_name = os.path.abspath(__file__)
-    dir_name = os.path.dirname(abs_name)
+    abs_name: str = os.path.abspath(__file__)
+    dir_name: str = os.path.dirname(abs_name)
 
-    index_path = os.path.dirname(dir_name) + "/vnpy_webtrader/static/index.html"
+    index_path: str = os.path.dirname(dir_name) + "/vnpy_webtrader/static/index.html"
     with open(index_path) as f:
         content: str = f.read()
 
@@ -169,7 +169,7 @@ def subscribe(vt_symbol: str, access: bool = Depends(get_access)) -> None:
     if not access:
         return "Not authenticated"
 
-    contract: ContractData = rpc_client.get_contract(vt_symbol)
+    contract: Optional[ContractData] = rpc_client.get_contract(vt_symbol)
     if not contract:
         return f"找不到合约{vt_symbol}"
 
@@ -207,7 +207,7 @@ def send_order(model: OrderRequestModel, access: bool = Depends(get_access)) -> 
 
     req: OrderRequest = OrderRequest(**model.__dict__)
 
-    contract: ContractData = rpc_client.get_contract(req.vt_symbol)
+    contract: Optional[ContractData] = rpc_client.get_contract(req.vt_symbol)
     if not contract:
         return f"找不到合约{req.symbol} {req.exchange.value}"
 
@@ -221,7 +221,7 @@ def cancel_order(vt_orderid: str, access: bool = Depends(get_access)) -> None:
     if not access:
         return "Not authenticated"
 
-    order: OrderData = rpc_client.get_order(vt_orderid)
+    order: Optional[OrderData] = rpc_client.get_order(vt_orderid)
     if not order:
         return f"找不到委托{vt_orderid}"
 
@@ -235,7 +235,7 @@ def get_all_orders(access: bool = Depends(get_access)) -> list:
     if not access:
         return "Not authenticated"
 
-    orders: OrderData = rpc_client.get_all_orders()
+    orders: List[OrderData] = rpc_client.get_all_orders()
     return [to_dict(order) for order in orders]
 
 
@@ -295,7 +295,7 @@ async def get_websocket_access(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return False
     else:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload: Mapping = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None or username != USERNAME:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)

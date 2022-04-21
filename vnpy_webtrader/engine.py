@@ -10,7 +10,7 @@ from vnpy.trader.event import (
 from vnpy.event import EventEngine, Event
 
 
-APP_NAME: str = "RpcService"
+APP_NAME = "RpcService"
 
 
 class WebEngine(BaseEngine):
