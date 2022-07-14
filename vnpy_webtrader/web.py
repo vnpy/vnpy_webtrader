@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, List, Mapping, Optional
 import asyncio
 import json
 import os
@@ -12,6 +12,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from jose import jwt, JWTError
 from passlib.context import CryptContext
+from pathlib import Path
 
 from vnpy.rpc import RpcClient
 from vnpy.trader.object import (
@@ -21,6 +22,7 @@ from vnpy.trader.object import (
     OrderRequest,
     PositionData,
     SubscribeRequest,
+    CancelRequest,
     TickData,
     TradeData
 )
@@ -37,7 +39,7 @@ from vnpy.trader.utility import load_json, get_file_path
 SETTING_FILENAME = "web_trader_setting.json"
 SETTING_FILEPATH = get_file_path(SETTING_FILENAME)
 
-setting = load_json(SETTING_FILEPATH)
+setting: dict = load_json(SETTING_FILEPATH)
 USERNAME = setting["username"]              # 用户名
 PASSWORD = setting["password"]              # 密码
 REQ_ADDRESS = setting["req_address"]        # 请求服务地址
@@ -50,10 +52,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30        # 令牌超时（分钟）
 
 
 # 实例化CryptContext用于处理哈希密码
-pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
+pwd_context: CryptContext = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
 
 # FastAPI密码鉴权工具
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme: OAuth2PasswordBearer = OAuth2PasswordBearer(tokenUrl="token")
 
 # RPC客户端
 rpc_client: RpcClient = None
@@ -61,7 +63,7 @@ rpc_client: RpcClient = None
 
 def to_dict(o: dataclass) -> dict:
     """将对象转换为字典"""
-    data = {}
+    data: dict = {}
     for k, v in o.__dict__.items():
         if isinstance(v, Enum):
             data[k] = v.value
@@ -78,9 +80,9 @@ class Token(BaseModel):
     token_type: str
 
 
-def authenticate_user(current_username: str, username: str, password: str):
+def authenticate_user(current_username: str, username: str, password: str) -> str:
     """校验用户"""
-    web_username = current_username
+    web_username: str = current_username
     hashed_password = pwd_context.hash(PASSWORD)
 
     if web_username != username:
@@ -92,29 +94,29 @@ def authenticate_user(current_username: str, username: str, password: str):
     return username
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """创建令牌"""
-    to_encode = data.copy()
+    to_encode: dict = data.copy()
 
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire: datetime = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire: datetime = datetime.utcnow() + timedelta(minutes=15)
 
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt: str = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-async def get_access(token: str = Depends(oauth2_scheme)):
+async def get_access(token: str = Depends(oauth2_scheme)) -> bool:
     """REST鉴权"""
-    credentials_exception = HTTPException(
+    credentials_exception: HTTPException = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload: Mapping = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -128,34 +130,34 @@ async def get_access(token: str = Depends(oauth2_scheme)):
 
 
 # 创建FastAPI应用
-app = FastAPI()
+app: FastAPI = FastAPI()
 
 
 @app.get("/")
 def index() -> HTMLResponse:
     """获取主页面"""
-    abs_name = os.path.abspath(__file__)
-    dir_name = os.path.dirname(abs_name)
+    abs_name: str = os.path.abspath(__file__)
+    dir_name: str = os.path.dirname(abs_name)
 
-    index_path = os.path.dirname(dir_name) + "/vnpy_webtrader/static/index.html"
+    index_path: str = os.path.dirname(dir_name) + "/vnpy_webtrader/static/index.html"
     with open(index_path) as f:
-        content = f.read()
+        content: str = f.read()
 
     return HTMLResponse(content)
 
 
 @app.post("/token", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
+def login(form_data: OAuth2PasswordRequestForm = Depends()) -> dict:
     """用户登录"""
-    web_username = authenticate_user(USERNAME, form_data.username, form_data.password)
+    web_username: str = authenticate_user(USERNAME, form_data.username, form_data.password)
     if not web_username:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
+    access_token_expires: timedelta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token: str = create_access_token(
         data={"sub": web_username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
@@ -167,11 +169,11 @@ def subscribe(vt_symbol: str, access: bool = Depends(get_access)) -> None:
     if not access:
         return "Not authenticated"
 
-    contract: ContractData = rpc_client.get_contract(vt_symbol)
+    contract: Optional[ContractData] = rpc_client.get_contract(vt_symbol)
     if not contract:
         return f"找不到合约{vt_symbol}"
 
-    req = SubscribeRequest(contract.symbol, contract.exchange)
+    req: SubscribeRequest = SubscribeRequest(contract.symbol, contract.exchange)
     rpc_client.subscribe(req, contract.gateway_name)
 
 
@@ -205,7 +207,7 @@ def send_order(model: OrderRequestModel, access: bool = Depends(get_access)) -> 
 
     req: OrderRequest = OrderRequest(**model.__dict__)
 
-    contract: ContractData = rpc_client.get_contract(req.vt_symbol)
+    contract: Optional[ContractData] = rpc_client.get_contract(req.vt_symbol)
     if not contract:
         return f"找不到合约{req.symbol} {req.exchange.value}"
 
@@ -219,11 +221,11 @@ def cancel_order(vt_orderid: str, access: bool = Depends(get_access)) -> None:
     if not access:
         return "Not authenticated"
 
-    order: OrderData = rpc_client.get_order(vt_orderid)
+    order: Optional[OrderData] = rpc_client.get_order(vt_orderid)
     if not order:
         return f"找不到委托{vt_orderid}"
 
-    req = order.create_cancel_request()
+    req: CancelRequest = order.create_cancel_request()
     rpc_client.cancel_order(req, order.gateway_name)
 
 
@@ -233,7 +235,7 @@ def get_all_orders(access: bool = Depends(get_access)) -> list:
     if not access:
         return "Not authenticated"
 
-    orders: OrderData = rpc_client.get_all_orders()
+    orders: List[OrderData] = rpc_client.get_all_orders()
     return [to_dict(order) for order in orders]
 
 
@@ -287,13 +289,13 @@ event_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
 async def get_websocket_access(
     websocket: WebSocket,
     token: Optional[str] = Query(None)
-):
+) -> bool:
     """Websocket鉴权"""
     if token is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return False
     else:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload: Mapping = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None or username != USERNAME:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
@@ -325,12 +327,12 @@ async def websocket_broadcast(msg: str) -> None:
         await websocket.send_text(msg)
 
 
-def rpc_callback(topic: str, data: Any):
+def rpc_callback(topic: str, data: Any) -> None:
     """RPC回调函数"""
     if not active_websockets:
         return
 
-    data = {
+    data: dict = {
         "topic": topic,
         "data": to_dict(data)
     }
@@ -342,7 +344,7 @@ def rpc_callback(topic: str, data: Any):
 def startup_event() -> None:
     """应用启动事件"""
     global rpc_client
-    rpc_client = RpcClient()
+    rpc_client: RpcClient = RpcClient()
     rpc_client.callback = rpc_callback
     rpc_client.subscribe_topic("")
     rpc_client.start(REQ_ADDRESS, SUB_ADDRESS)

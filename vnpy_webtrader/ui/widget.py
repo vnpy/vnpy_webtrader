@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 from vnpy.event import EventEngine
 from vnpy.trader.engine import MainEngine
@@ -11,10 +12,10 @@ from ..engine import APP_NAME, WebEngine
 class WebManager(QtWidgets.QWidget):
     """网页服务器管理界面"""
 
-    setting_filename = "web_trader_setting.json"
-    setting_filepath = get_file_path(setting_filename)
+    setting_filename: str = "web_trader_setting.json"
+    setting_filepath: Path = get_file_path(setting_filename)
 
-    def __init__(self, main_engine: MainEngine, event_engine: EventEngine):
+    def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
         """"""
         super().__init__()
 
@@ -24,32 +25,32 @@ class WebManager(QtWidgets.QWidget):
 
         self.init_ui()
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         """初始化界面"""
         self.setWindowTitle("Web服务")
 
-        setting = load_json(self.setting_filepath)
-        username = setting.get("username", "vnpy")
-        password = setting.get("password", "vnpy")
-        req_address = setting.get("req_address", "tcp://127.0.0.1:2014")
-        sub_address = setting.get("sub_address", "tcp://127.0.0.1:4102")
-        host = setting.get("host", "127.0.0.1")
-        port = setting.get("port", "8000")
+        setting: dict = load_json(self.setting_filepath)
+        username: str = setting.get("username", "vnpy")
+        password: str = setting.get("password", "vnpy")
+        req_address: str = setting.get("req_address", "tcp://127.0.0.1:2014")
+        sub_address: str = setting.get("sub_address", "tcp://127.0.0.1:4102")
+        host: str = setting.get("host", "127.0.0.1")
+        port: str = setting.get("port", "8000")
 
-        self.username_line = QtWidgets.QLineEdit(username)
-        self.password_line = QtWidgets.QLineEdit(password)
-        self.req_line = QtWidgets.QLineEdit(req_address)
-        self.sub_line = QtWidgets.QLineEdit(sub_address)
-        self.host_line = QtWidgets.QLineEdit(host)
-        self.port_line = QtWidgets.QLineEdit(port)
+        self.username_line: QtWidgets.QLineEdit = QtWidgets.QLineEdit(username)
+        self.password_line: QtWidgets.QLineEdit = QtWidgets.QLineEdit(password)
+        self.req_line: QtWidgets.QLineEdit = QtWidgets.QLineEdit(req_address)
+        self.sub_line: QtWidgets.QLineEdit = QtWidgets.QLineEdit(sub_address)
+        self.host_line: QtWidgets.QLineEdit = QtWidgets.QLineEdit(host)
+        self.port_line: QtWidgets.QLineEdit = QtWidgets.QLineEdit(port)
 
-        self.start_button = QtWidgets.QPushButton("启动")
+        self.start_button: QtWidgets.QPushButton = QtWidgets.QPushButton("启动")
         self.start_button.clicked.connect(self.start)
 
-        self.text_edit = QtWidgets.QTextEdit()
+        self.text_edit: QtWidgets.QTextEdit = QtWidgets.QTextEdit()
         self.text_edit.setReadOnly(True)
 
-        form = QtWidgets.QFormLayout()
+        form: QtWidgets.QFormLayout = QtWidgets.QFormLayout()
         form.addRow("用户名", self.username_line)
         form.addRow("密码", self.password_line)
         form.addRow("请求地址", self.req_line)
@@ -58,14 +59,14 @@ class WebManager(QtWidgets.QWidget):
         form.addRow("监听端口", self.port_line)
         form.addRow(self.start_button)
 
-        hbox = QtWidgets.QHBoxLayout()
+        hbox: QtWidgets.QHBoxLayout = QtWidgets.QHBoxLayout()
         hbox.addLayout(form)
         hbox.addWidget(self.text_edit)
         self.setLayout(hbox)
 
         self.resize(1000, 500)
 
-    def start(self):
+    def start(self) -> None:
         """启动引擎"""
         username: str = self.username_line.text()
         password: str = self.password_line.text()
@@ -75,7 +76,7 @@ class WebManager(QtWidgets.QWidget):
         port: str = self.port_line.text()
 
         # 保存配置
-        setting = {
+        setting: dict = {
             "username": username,
             "password": password,
             "req_address": req_address,
@@ -90,7 +91,7 @@ class WebManager(QtWidgets.QWidget):
         self.start_button.setDisabled(True)
 
         # 初始化Web服务子进程
-        self.process = QtCore.QProcess(self)
+        self.process: QtCore.QProcess = QtCore.QProcess(self)
         self.process.setProcessChannelMode(self.process.MergedChannels)
 
         self.process.readyReadStandardOutput.connect(self.data_ready)
@@ -99,7 +100,7 @@ class WebManager(QtWidgets.QWidget):
         self.process.finished.connect(self.web_finished)
 
         # 启动子进程
-        cmd = [
+        cmd: list = [
             "-m"
             "uvicorn",
             "vnpy_webtrader.web:app",
@@ -130,11 +131,11 @@ class WebManager(QtWidgets.QWidget):
 
     def data_ready(self) -> None:
         """更新进程有数据可读"""
-        text = bytes(self.process.readAll())
+        text: bytes = bytes(self.process.readAll())
 
         try:
-            text = text.decode("UTF8")
+            text: str = text.decode("UTF8")
         except UnicodeDecodeError:
-            text = text.decode("GBK")
+            text: str = text.decode("GBK")
 
         self.text_edit.append(text)

@@ -30,10 +30,10 @@ from .engine import WebEngine, APP_NAME
 class WebTraderApp(BaseApp):
     """"""
 
-    app_name = APP_NAME
-    app_module = __module__
-    app_path = Path(__file__).parent
-    display_name = "Web服务"
-    engine_class = WebEngine
-    widget_name = "WebManager"
-    icon_name = str(app_path.joinpath("ui", "web.ico"))
+    app_name: str = APP_NAME
+    app_module: str = __module__
+    app_path: Path = Path(__file__).parent
+    display_name: str = "Web服务"
+    engine_class: WebEngine = WebEngine
+    widget_name: str = "WebManager"
+    icon_name: str = str(app_path.joinpath("ui", "web.ico"))
