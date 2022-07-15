@@ -105,8 +105,7 @@ class WebManager(QtWidgets.QWidget):
             "uvicorn",
             "vnpy_webtrader.web:app",
             f"--host={host}",
-            f"--port={port}",
-            "--reload"
+            f"--port={port}"
         ]
         self.process.start(sys.executable, cmd)
 
