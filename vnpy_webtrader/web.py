@@ -340,7 +340,7 @@ def rpc_callback(topic: str, data: Any) -> None:
 def startup_event() -> None:
     """应用启动事件"""
     global rpc_client
-    rpc_client: RpcClient = RpcClient()
+    rpc_client = RpcClient()
     rpc_client.callback = rpc_callback
     rpc_client.subscribe_topic("")
     rpc_client.start(REQ_ADDRESS, SUB_ADDRESS)
