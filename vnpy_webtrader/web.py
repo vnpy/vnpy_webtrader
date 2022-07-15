@@ -281,7 +281,7 @@ async def get_websocket_access(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         raise credentials_exception
     else:
-        payload: Mapping = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload: dict = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None or not secrets.compare_digest(USERNAME, username):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
