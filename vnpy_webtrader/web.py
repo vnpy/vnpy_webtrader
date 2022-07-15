@@ -122,7 +122,7 @@ async def get_access(token: str = Depends(oauth2_scheme)) -> bool:
     except JWTError:
         raise credentials_exception
 
-    if username != USERNAME:
+    if not secrets.compare_digest(USERNAME, username):
         raise credentials_exception
 
     return True
@@ -283,7 +283,7 @@ async def get_websocket_access(
     else:
         payload: Mapping = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        if username is None or username != USERNAME:
+        if username is None or not secrets.compare_digest(USERNAME, username):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             raise credentials_exception
 
