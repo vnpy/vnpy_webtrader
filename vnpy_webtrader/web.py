@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, List, Optional, Union
 import asyncio
 import json
 from datetime import datetime, timedelta
@@ -115,7 +115,7 @@ async def get_access(token: str = Depends(oauth2_scheme)) -> bool:
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload: Mapping = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload: dict = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
