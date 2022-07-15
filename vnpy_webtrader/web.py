@@ -1,10 +1,11 @@
 from enum import Enum
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional, Union
 import asyncio
 import json
 import os
 from datetime import datetime, timedelta
 from dataclasses import dataclass
+import secrets
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status, Depends, Query
 from fastapi.responses import HTMLResponse
@@ -80,12 +81,11 @@ class Token(BaseModel):
     token_type: str
 
 
-def authenticate_user(current_username: str, username: str, password: str) -> str:
+def authenticate_user(current_username: str, username: str, password: str) -> Union[str, bool]:
     """校验用户"""
-    web_username: str = current_username
     hashed_password = pwd_context.hash(PASSWORD)
 
-    if web_username != username:
+    if not secrets.compare_digest(current_username, username):
         return False
 
     if not pwd_context.verify(password, hashed_password):
