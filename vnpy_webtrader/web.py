@@ -2,7 +2,6 @@ from enum import Enum
 from typing import Any, List, Mapping, Optional, Union
 import asyncio
 import json
-import os
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 import secrets
@@ -136,10 +135,7 @@ app: FastAPI = FastAPI()
 @app.get("/")
 def index() -> HTMLResponse:
     """获取主页面"""
-    abs_name: str = os.path.abspath(__file__)
-    dir_name: str = os.path.dirname(abs_name)
-
-    index_path: str = os.path.dirname(dir_name) + "/vnpy_webtrader/static/index.html"
+    index_path: Path = Path(__file__).parent.joinpath("static/index.html")
     with open(index_path) as f:
         content: str = f.read()
 
