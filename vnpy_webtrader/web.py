@@ -297,7 +297,6 @@ async def websocket_endpoint(websocket: WebSocket, access: bool = Depends(get_we
     await websocket.accept()
     active_websockets.append(websocket)
 
-    print("websocket connected")
     try:
         while True:
             await websocket.receive_text()
@@ -337,5 +336,4 @@ def startup_event() -> None:
 @app.on_event("shutdown")
 def shutdown_event() -> None:
     """应用停止事件"""
-    print("rpc_client exit")
     rpc_client.stop()
