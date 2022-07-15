@@ -164,7 +164,11 @@ def subscribe(vt_symbol: str, access: bool = Depends(get_access)) -> None:
     """订阅行情"""
     contract: Optional[ContractData] = rpc_client.get_contract(vt_symbol)
     if not contract:
-        return f"找不到合约{vt_symbol}"
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到合约{vt_symbol}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     req: SubscribeRequest = SubscribeRequest(contract.symbol, contract.exchange)
     rpc_client.subscribe(req, contract.gateway_name)
@@ -196,7 +200,11 @@ def send_order(model: OrderRequestModel, access: bool = Depends(get_access)) -> 
 
     contract: Optional[ContractData] = rpc_client.get_contract(req.vt_symbol)
     if not contract:
-        return f"找不到合约{req.symbol} {req.exchange.value}"
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到合约{req.symbol} {req.exchange.value}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     vt_orderid: str = rpc_client.send_order(req, contract.gateway_name)
     return vt_orderid
@@ -207,7 +215,11 @@ def cancel_order(vt_orderid: str, access: bool = Depends(get_access)) -> None:
     """委托撤单"""
     order: Optional[OrderData] = rpc_client.get_order(vt_orderid)
     if not order:
-        return f"找不到委托{vt_orderid}"
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到委托{vt_orderid}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     req: CancelRequest = order.create_cancel_request()
     rpc_client.cancel_order(req, order.gateway_name)
@@ -260,15 +272,21 @@ async def get_websocket_access(
     token: Optional[str] = Query(None)
 ) -> bool:
     """Websocket鉴权"""
+    credentials_exception: HTTPException = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     if token is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return False
+        raise credentials_exception
     else:
         payload: Mapping = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None or username != USERNAME:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            return False
+            raise credentials_exception
+
     return True
 
 
@@ -276,9 +294,6 @@ async def get_websocket_access(
 @app.websocket("/ws/")
 async def websocket_endpoint(websocket: WebSocket, access: bool = Depends(get_websocket_access)) -> None:
     """Weboskcet连接处理"""
-    if not access:
-        return "Not authenticated"
-
     await websocket.accept()
     active_websockets.append(websocket)
 
