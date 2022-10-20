@@ -47,6 +47,9 @@ class WebManager(QtWidgets.QWidget):
         self.start_button: QtWidgets.QPushButton = QtWidgets.QPushButton("启动")
         self.start_button.clicked.connect(self.start)
 
+        self.end_button: QtWidgets.QPushButton = QtWidgets.QPushButton("停止")
+        self.end_button.clicked.connect(self.end)
+
         self.text_edit: QtWidgets.QTextEdit = QtWidgets.QTextEdit()
         self.text_edit.setReadOnly(True)
 
@@ -58,6 +61,9 @@ class WebManager(QtWidgets.QWidget):
         form.addRow("监听地址", self.host_line)
         form.addRow("监听端口", self.port_line)
         form.addRow(self.start_button)
+        form.addRow(self.end_button)
+
+        self.end_button.setEnabled(False)
 
         hbox: QtWidgets.QHBoxLayout = QtWidgets.QHBoxLayout()
         hbox.addLayout(form)
@@ -105,10 +111,13 @@ class WebManager(QtWidgets.QWidget):
             "uvicorn",
             "vnpy_webtrader.web:app",
             f"--host={host}",
-            f"--port={port}",
-            "--reload"
+            f"--port={port}"
         ]
         self.process.start(sys.executable, cmd)
+
+    def end(self) -> None:
+        """终止引擎"""
+        self.process.kill()
 
     def web_started(self) -> None:
         """Web进程启动"""
@@ -125,9 +134,24 @@ class WebManager(QtWidgets.QWidget):
         ]:
             w.setEnabled(False)
 
+        self.end_button.setEnabled(True)
+
     def web_finished(self) -> None:
         """Web进程结束"""
         self.text_edit.append("Web服务器停止")
+
+        for w in [
+            self.username_line,
+            self.password_line,
+            self.req_line,
+            self.sub_line,
+            self.host_line,
+            self.port_line,
+            self.start_button
+        ]:
+            w.setEnabled(True)
+
+        self.end_button.setEnabled(False)
 
     def data_ready(self) -> None:
         """更新进程有数据可读"""

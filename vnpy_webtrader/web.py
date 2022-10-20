@@ -1,10 +1,10 @@
 from enum import Enum
-from typing import Any, List, Mapping, Optional
+from typing import Any, List, Optional, Union
 import asyncio
 import json
-import os
 from datetime import datetime, timedelta
 from dataclasses import dataclass
+import secrets
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status, Depends, Query
 from fastapi.responses import HTMLResponse
@@ -80,12 +80,11 @@ class Token(BaseModel):
     token_type: str
 
 
-def authenticate_user(current_username: str, username: str, password: str) -> str:
+def authenticate_user(current_username: str, username: str, password: str) -> Union[str, bool]:
     """校验用户"""
-    web_username: str = current_username
     hashed_password = pwd_context.hash(PASSWORD)
 
-    if web_username != username:
+    if not secrets.compare_digest(current_username, username):
         return False
 
     if not pwd_context.verify(password, hashed_password):
@@ -116,14 +115,14 @@ async def get_access(token: str = Depends(oauth2_scheme)) -> bool:
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload: Mapping = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload: dict = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
-    if username != USERNAME:
+    if not secrets.compare_digest(USERNAME, username):
         raise credentials_exception
 
     return True
@@ -136,10 +135,7 @@ app: FastAPI = FastAPI()
 @app.get("/")
 def index() -> HTMLResponse:
     """获取主页面"""
-    abs_name: str = os.path.abspath(__file__)
-    dir_name: str = os.path.dirname(abs_name)
-
-    index_path: str = os.path.dirname(dir_name) + "/vnpy_webtrader/static/index.html"
+    index_path: Path = Path(__file__).parent.joinpath("static/index.html")
     with open(index_path) as f:
         content: str = f.read()
 
@@ -166,12 +162,13 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()) -> dict:
 @app.post("/tick/{vt_symbol}")
 def subscribe(vt_symbol: str, access: bool = Depends(get_access)) -> None:
     """订阅行情"""
-    if not access:
-        return "Not authenticated"
-
     contract: Optional[ContractData] = rpc_client.get_contract(vt_symbol)
     if not contract:
-        return f"找不到合约{vt_symbol}"
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到合约{vt_symbol}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     req: SubscribeRequest = SubscribeRequest(contract.symbol, contract.exchange)
     rpc_client.subscribe(req, contract.gateway_name)
@@ -180,9 +177,6 @@ def subscribe(vt_symbol: str, access: bool = Depends(get_access)) -> None:
 @app.get("/tick")
 def get_all_ticks(access: bool = Depends(get_access)) -> list:
     """查询行情信息"""
-    if not access:
-        return "Not authenticated"
-
     ticks: List[TickData] = rpc_client.get_all_ticks()
     return [to_dict(tick) for tick in ticks]
 
@@ -202,14 +196,15 @@ class OrderRequestModel(BaseModel):
 @app.post("/order")
 def send_order(model: OrderRequestModel, access: bool = Depends(get_access)) -> str:
     """委托下单"""
-    if not access:
-        return "Not authenticated"
-
     req: OrderRequest = OrderRequest(**model.__dict__)
 
     contract: Optional[ContractData] = rpc_client.get_contract(req.vt_symbol)
     if not contract:
-        return f"找不到合约{req.symbol} {req.exchange.value}"
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到合约{req.symbol} {req.exchange.value}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     vt_orderid: str = rpc_client.send_order(req, contract.gateway_name)
     return vt_orderid
@@ -218,12 +213,13 @@ def send_order(model: OrderRequestModel, access: bool = Depends(get_access)) -> 
 @app.delete("/order/{vt_orderid}")
 def cancel_order(vt_orderid: str, access: bool = Depends(get_access)) -> None:
     """委托撤单"""
-    if not access:
-        return "Not authenticated"
-
     order: Optional[OrderData] = rpc_client.get_order(vt_orderid)
     if not order:
-        return f"找不到委托{vt_orderid}"
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"找不到委托{vt_orderid}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     req: CancelRequest = order.create_cancel_request()
     rpc_client.cancel_order(req, order.gateway_name)
@@ -232,9 +228,6 @@ def cancel_order(vt_orderid: str, access: bool = Depends(get_access)) -> None:
 @app.get("/order")
 def get_all_orders(access: bool = Depends(get_access)) -> list:
     """查询委托信息"""
-    if not access:
-        return "Not authenticated"
-
     orders: List[OrderData] = rpc_client.get_all_orders()
     return [to_dict(order) for order in orders]
 
@@ -242,9 +235,6 @@ def get_all_orders(access: bool = Depends(get_access)) -> list:
 @app.get("/trade")
 def get_all_trades(access: bool = Depends(get_access)) -> list:
     """查询成交信息"""
-    if not access:
-        return "Not authenticated"
-
     trades: List[TradeData] = rpc_client.get_all_trades()
     return [to_dict(trade) for trade in trades]
 
@@ -252,9 +242,6 @@ def get_all_trades(access: bool = Depends(get_access)) -> list:
 @app.get("/position")
 def get_all_positions(access: bool = Depends(get_access)) -> list:
     """查询持仓信息"""
-    if not access:
-        return "Not authenticated"
-
     positions: List[PositionData] = rpc_client.get_all_positions()
     return [to_dict(position) for position in positions]
 
@@ -262,9 +249,6 @@ def get_all_positions(access: bool = Depends(get_access)) -> list:
 @app.get("/account")
 def get_all_accounts(access: bool = Depends(get_access)) -> list:
     """查询账户资金"""
-    if not access:
-        return "Not authenticated"
-
     accounts: List[AccountData] = rpc_client.get_all_accounts()
     return [to_dict(account) for account in accounts]
 
@@ -272,9 +256,6 @@ def get_all_accounts(access: bool = Depends(get_access)) -> list:
 @app.get("/contract")
 def get_all_contracts(access: bool = Depends(get_access)) -> list:
     """查询合约信息"""
-    if not access:
-        return "Not authenticated"
-
     contracts: List[ContractData] = rpc_client.get_all_contracts()
     return [to_dict(contract) for contract in contracts]
 
@@ -291,15 +272,21 @@ async def get_websocket_access(
     token: Optional[str] = Query(None)
 ) -> bool:
     """Websocket鉴权"""
+    credentials_exception: HTTPException = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     if token is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return False
+        raise credentials_exception
     else:
-        payload: Mapping = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload: dict = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        if username is None or username != USERNAME:
+        if username is None or not secrets.compare_digest(USERNAME, username):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            return False
+            raise credentials_exception
+
     return True
 
 
@@ -307,13 +294,9 @@ async def get_websocket_access(
 @app.websocket("/ws/")
 async def websocket_endpoint(websocket: WebSocket, access: bool = Depends(get_websocket_access)) -> None:
     """Weboskcet连接处理"""
-    if not access:
-        return "Not authenticated"
-
     await websocket.accept()
     active_websockets.append(websocket)
 
-    print("websocket connected")
     try:
         while True:
             await websocket.receive_text()
@@ -344,7 +327,7 @@ def rpc_callback(topic: str, data: Any) -> None:
 def startup_event() -> None:
     """应用启动事件"""
     global rpc_client
-    rpc_client: RpcClient = RpcClient()
+    rpc_client = RpcClient()
     rpc_client.callback = rpc_callback
     rpc_client.subscribe_topic("")
     rpc_client.start(REQ_ADDRESS, SUB_ADDRESS)
@@ -353,5 +336,4 @@ def startup_event() -> None:
 @app.on_event("shutdown")
 def shutdown_event() -> None:
     """应用停止事件"""
-    print("rpc_client exit")
     rpc_client.stop()
