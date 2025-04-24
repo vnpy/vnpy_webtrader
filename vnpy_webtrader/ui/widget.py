@@ -98,7 +98,7 @@ class WebManager(QtWidgets.QWidget):
 
         # 初始化Web服务子进程
         self.process: QtCore.QProcess = QtCore.QProcess(self)
-        self.process.setProcessChannelMode(self.process.MergedChannels)
+        self.process.setProcessChannelMode(QtCore.QProcess.ProcessChannelMode.MergedChannels)
 
         self.process.readyReadStandardOutput.connect(self.data_ready)
         self.process.readyReadStandardError.connect(self.data_ready)
