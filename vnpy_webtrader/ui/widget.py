@@ -107,7 +107,7 @@ class WebManager(QtWidgets.QWidget):
 
         # 启动子进程
         cmd: list = [
-            "-m"
+            "-m",
             "uvicorn",
             "vnpy_webtrader.web:app",
             f"--host={host}",
