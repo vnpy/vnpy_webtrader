@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, Optional, Union
+from typing import Any
 import asyncio
 import json
 from datetime import datetime, timedelta
@@ -80,7 +80,7 @@ class Token(BaseModel):
     token_type: str
 
 
-def authenticate_user(current_username: str, username: str, password: str) -> Union[str, bool]:
+def authenticate_user(current_username: str, username: str, password: str) -> str | bool:
     """校验用户"""
     hashed_password = pwd_context.hash(PASSWORD)
 
@@ -93,7 +93,7 @@ def authenticate_user(current_username: str, username: str, password: str) -> Un
     return username
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """创建令牌"""
     to_encode: dict = data.copy()
 
@@ -119,8 +119,8 @@ async def get_access(token: str = Depends(oauth2_scheme)) -> bool:
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-    except JWTError:
-        raise credentials_exception
+    except JWTError as err:
+        raise credentials_exception from err
 
     if not secrets.compare_digest(USERNAME, username):
         raise credentials_exception
@@ -143,7 +143,7 @@ def index() -> HTMLResponse:
 
 
 @app.post("/token", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends()) -> dict:
+def login(form_data: OAuth2PasswordRequestForm = Depends()) -> dict:  # noqa: B008
     """用户登录"""
     web_username: str = authenticate_user(USERNAME, form_data.username, form_data.password)
     if not web_username:
@@ -162,7 +162,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()) -> dict:
 @app.post("/tick/{vt_symbol}")
 def subscribe(vt_symbol: str, access: bool = Depends(get_access)) -> None:
     """订阅行情"""
-    contract: Optional[ContractData] = rpc_client.get_contract(vt_symbol)
+    contract: ContractData | None = rpc_client.get_contract(vt_symbol)
     if not contract:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -177,7 +177,7 @@ def subscribe(vt_symbol: str, access: bool = Depends(get_access)) -> None:
 @app.get("/tick")
 def get_all_ticks(access: bool = Depends(get_access)) -> list:
     """查询行情信息"""
-    ticks: List[TickData] = rpc_client.get_all_ticks()
+    ticks: list[TickData] = rpc_client.get_all_ticks()
     return [to_dict(tick) for tick in ticks]
 
 
@@ -198,7 +198,7 @@ def send_order(model: OrderRequestModel, access: bool = Depends(get_access)) -> 
     """委托下单"""
     req: OrderRequest = OrderRequest(**model.__dict__)
 
-    contract: Optional[ContractData] = rpc_client.get_contract(req.vt_symbol)
+    contract: ContractData | None = rpc_client.get_contract(req.vt_symbol)
     if not contract:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -213,7 +213,7 @@ def send_order(model: OrderRequestModel, access: bool = Depends(get_access)) -> 
 @app.delete("/order/{vt_orderid}")
 def cancel_order(vt_orderid: str, access: bool = Depends(get_access)) -> None:
     """委托撤单"""
-    order: Optional[OrderData] = rpc_client.get_order(vt_orderid)
+    order: OrderData | None = rpc_client.get_order(vt_orderid)
     if not order:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -228,40 +228,40 @@ def cancel_order(vt_orderid: str, access: bool = Depends(get_access)) -> None:
 @app.get("/order")
 def get_all_orders(access: bool = Depends(get_access)) -> list:
     """查询委托信息"""
-    orders: List[OrderData] = rpc_client.get_all_orders()
+    orders: list[OrderData] = rpc_client.get_all_orders()
     return [to_dict(order) for order in orders]
 
 
 @app.get("/trade")
 def get_all_trades(access: bool = Depends(get_access)) -> list:
     """查询成交信息"""
-    trades: List[TradeData] = rpc_client.get_all_trades()
+    trades: list[TradeData] = rpc_client.get_all_trades()
     return [to_dict(trade) for trade in trades]
 
 
 @app.get("/position")
 def get_all_positions(access: bool = Depends(get_access)) -> list:
     """查询持仓信息"""
-    positions: List[PositionData] = rpc_client.get_all_positions()
+    positions: list[PositionData] = rpc_client.get_all_positions()
     return [to_dict(position) for position in positions]
 
 
 @app.get("/account")
 def get_all_accounts(access: bool = Depends(get_access)) -> list:
     """查询账户资金"""
-    accounts: List[AccountData] = rpc_client.get_all_accounts()
+    accounts: list[AccountData] = rpc_client.get_all_accounts()
     return [to_dict(account) for account in accounts]
 
 
 @app.get("/contract")
 def get_all_contracts(access: bool = Depends(get_access)) -> list:
     """查询合约信息"""
-    contracts: List[ContractData] = rpc_client.get_all_contracts()
+    contracts: list[ContractData] = rpc_client.get_all_contracts()
     return [to_dict(contract) for contract in contracts]
 
 
 # 活动状态的Websocket连接
-active_websockets: List[WebSocket] = []
+active_websockets: list[WebSocket] = []
 
 # 全局事件循环
 event_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
@@ -269,7 +269,7 @@ event_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
 
 async def get_websocket_access(
     websocket: WebSocket,
-    token: Optional[str] = Query(None)
+    token: str | None = Query(None)
 ) -> bool:
     """Websocket鉴权"""
     credentials_exception: HTTPException = HTTPException(
