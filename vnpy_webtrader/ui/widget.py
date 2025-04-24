@@ -155,11 +155,11 @@ class WebManager(QtWidgets.QWidget):
 
     def data_ready(self) -> None:
         """更新进程有数据可读"""
-        text: bytes = bytes(self.process.readAll())
+        _bytes: bytes = bytes(self.process.readAll())
 
         try:
-            text: str = text.decode("UTF8")
+            text: str = _bytes.decode("UTF8")
         except UnicodeDecodeError:
-            text: str = text.decode("GBK")
+            text = _bytes.decode("GBK")
 
         self.text_edit.append(text)

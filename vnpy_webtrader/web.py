@@ -1,9 +1,8 @@
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 import asyncio
 import json
 from datetime import datetime, timedelta
-from dataclasses import dataclass
 import secrets
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status, Depends, Query
@@ -61,7 +60,7 @@ oauth2_scheme: OAuth2PasswordBearer = OAuth2PasswordBearer(tokenUrl="token")
 rpc_client: RpcClient = None
 
 
-def to_dict(o: dataclass) -> dict:
+def to_dict(o: object) -> dict:
     """将对象转换为字典"""
     data: dict = {}
     for k, v in o.__dict__.items():
@@ -80,7 +79,7 @@ class Token(BaseModel):
     token_type: str
 
 
-def authenticate_user(current_username: str, username: str, password: str) -> str | bool:
+def authenticate_user(current_username: str, username: str, password: str) -> str | Literal[False]:
     """校验用户"""
     hashed_password = pwd_context.hash(PASSWORD)
 
@@ -100,7 +99,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     if expires_delta:
         expire: datetime = datetime.utcnow() + expires_delta
     else:
-        expire: datetime = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=15)
 
     to_encode.update({"exp": expire})
     encoded_jwt: str = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -116,9 +115,10 @@ async def get_access(token: str = Depends(oauth2_scheme)) -> bool:
     )
     try:
         payload: dict = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        username_value = payload.get("sub")
+        if username_value is None:
             raise credentials_exception
+        username: str = username_value
     except JWTError as err:
         raise credentials_exception from err
 
@@ -145,8 +145,8 @@ def index() -> HTMLResponse:
 @app.post("/token", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends()) -> dict:  # noqa: B008
     """用户登录"""
-    web_username: str = authenticate_user(USERNAME, form_data.username, form_data.password)
-    if not web_username:
+    auth_result = authenticate_user(USERNAME, form_data.username, form_data.password)
+    if not auth_result:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -154,7 +154,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()) -> dict:  # noqa: B0
         )
     access_token_expires: timedelta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token: str = create_access_token(
-        data={"sub": web_username}, expires_delta=access_token_expires
+        data={"sub": auth_result}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -282,8 +282,12 @@ async def get_websocket_access(
         raise credentials_exception
     else:
         payload: dict = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None or not secrets.compare_digest(USERNAME, username):
+        username_value = payload.get("sub")
+        if username_value is None:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            raise credentials_exception
+        username: str = username_value
+        if not secrets.compare_digest(USERNAME, username):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             raise credentials_exception
 
@@ -315,11 +319,11 @@ def rpc_callback(topic: str, data: Any) -> None:
     if not active_websockets:
         return
 
-    data: dict = {
+    message_data: dict = {
         "topic": topic,
         "data": to_dict(data)
     }
-    msg: str = json.dumps(data, ensure_ascii=False)
+    msg: str = json.dumps(message_data, ensure_ascii=False)
     asyncio.run_coroutine_threadsafe(websocket_broadcast(msg), event_loop)
 
 
