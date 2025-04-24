@@ -27,6 +27,16 @@ from vnpy.trader.app import BaseApp
 from .engine import WebEngine, APP_NAME
 
 
+__all__ = [
+    "WebEngine"
+    "APP_NAME",
+    "WebTraderApp"
+]
+
+
+__version__ = "1.1.0"
+
+
 class WebTraderApp(BaseApp):
     """"""
 
@@ -34,6 +44,6 @@ class WebTraderApp(BaseApp):
     app_module: str = __module__
     app_path: Path = Path(__file__).parent
     display_name: str = "Web服务"
-    engine_class: WebEngine = WebEngine
+    engine_class: type[WebEngine] = WebEngine
     widget_name: str = "WebManager"
     icon_name: str = str(app_path.joinpath("ui", "web.ico"))
