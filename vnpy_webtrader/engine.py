@@ -64,7 +64,7 @@ class WebEngine(BaseEngine):
         """处理事件"""
         self.server.publish(event.type, event.data)
 
-    def close(self):
+    def close(self) -> None:
         """关闭"""
         self.server.stop()
         self.server.join()

@@ -98,7 +98,7 @@ class WebManager(QtWidgets.QWidget):
 
         # 初始化Web服务子进程
         self.process: QtCore.QProcess = QtCore.QProcess(self)
-        self.process.setProcessChannelMode(self.process.MergedChannels)
+        self.process.setProcessChannelMode(QtCore.QProcess.ProcessChannelMode.MergedChannels)
 
         self.process.readyReadStandardOutput.connect(self.data_ready)
         self.process.readyReadStandardError.connect(self.data_ready)
@@ -107,7 +107,7 @@ class WebManager(QtWidgets.QWidget):
 
         # 启动子进程
         cmd: list = [
-            "-m"
+            "-m",
             "uvicorn",
             "vnpy_webtrader.web:app",
             f"--host={host}",
@@ -155,11 +155,11 @@ class WebManager(QtWidgets.QWidget):
 
     def data_ready(self) -> None:
         """更新进程有数据可读"""
-        text: bytes = bytes(self.process.readAll())
+        _bytes: bytes = bytes(self.process.readAll())
 
         try:
-            text: str = text.decode("UTF8")
+            text: str = _bytes.decode("UTF8")
         except UnicodeDecodeError:
-            text: str = text.decode("GBK")
+            text = _bytes.decode("GBK")
 
         self.text_edit.append(text)
