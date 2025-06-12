@@ -1,13 +1,13 @@
 from vnpy.event import EventEngine
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.ui import MainWindow, create_qapp
-from vnpy.gateway.ctp import CtpGateway
 
+from vnpy_ctp import CtpGateway
 from vnpy_webtrader import WebTraderApp
 
 
-def main():
-    """Start VN Trader"""
+def main() -> None:
+    """Start Trader"""
     qapp = create_qapp()
 
     event_engine = EventEngine()
