@@ -1,3 +1,4 @@
+"""把主引擎接口通过 RPC 暴露给 Web 服务的引擎。"""
 from vnpy.rpc import RpcServer
 from vnpy.trader.engine import BaseEngine, MainEngine
 from vnpy.trader.event import (
@@ -17,7 +18,7 @@ class WebEngine(BaseEngine):
     """Web服务引擎"""
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
-        """"""
+        """创建 RPC 服务器并完成方法注册和事件监听。"""
         super().__init__(main_engine, event_engine, APP_NAME)
 
         self.server: RpcServer = RpcServer()

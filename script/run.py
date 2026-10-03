@@ -1,3 +1,4 @@
+"""启动交易终端并加载 CTP 接口和 Web 交易应用。"""
 from vnpy.event import EventEngine
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.ui import MainWindow, create_qapp

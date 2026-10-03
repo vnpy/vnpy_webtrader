@@ -1,3 +1,4 @@
+"""Web 服务管理界面。"""
 import sys
 from pathlib import Path
 
@@ -16,7 +17,7 @@ class WebManager(QtWidgets.QWidget):
     setting_filepath: Path = get_file_path(setting_filename)
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
-        """"""
+        """取得 Web 引擎并初始化界面。"""
         super().__init__()
 
         self.main_engine: MainEngine = main_engine

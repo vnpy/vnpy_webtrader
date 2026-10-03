@@ -1,3 +1,4 @@
+"""Web 交易的 HTTP 和 WebSocket 接口。"""
 from enum import Enum
 from typing import Any, Literal
 import asyncio
