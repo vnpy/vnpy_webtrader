@@ -1,6 +1,7 @@
 """Web 服务管理界面。"""
 import sys
 from pathlib import Path
+from typing import cast
 
 from vnpy.event import EventEngine
 from vnpy.trader.engine import MainEngine
@@ -22,7 +23,7 @@ class WebManager(QtWidgets.QWidget):
 
         self.main_engine: MainEngine = main_engine
         self.event_engine: EventEngine = event_engine
-        self.web_engine: WebEngine = main_engine.get_engine(APP_NAME)
+        self.web_engine: WebEngine = cast(WebEngine, main_engine.get_engine(APP_NAME))
 
         self.init_ui()
 
@@ -30,7 +31,7 @@ class WebManager(QtWidgets.QWidget):
         """初始化界面"""
         self.setWindowTitle("Web服务")
 
-        setting: dict = load_json(self.setting_filepath)
+        setting: dict = load_json(str(self.setting_filepath))
         username: str = setting.get("username", "vnpy")
         password: str = setting.get("password", "vnpy")
         req_address: str = setting.get("req_address", "tcp://127.0.0.1:2014")
@@ -91,7 +92,7 @@ class WebManager(QtWidgets.QWidget):
             "host": host,
             "port": port
         }
-        save_json(self.setting_filepath, setting)
+        save_json(str(self.setting_filepath), setting)
 
         # 启动RPC
         self.web_engine.start_server(req_address, sub_address)
@@ -156,7 +157,7 @@ class WebManager(QtWidgets.QWidget):
 
     def data_ready(self) -> None:
         """更新进程有数据可读"""
-        _bytes: bytes = bytes(self.process.readAll())
+        _bytes: bytes = self.process.readAll().data()
 
         try:
             text: str = _bytes.decode("UTF8")

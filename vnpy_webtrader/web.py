@@ -1,6 +1,6 @@
 """Web 交易的 HTTP 和 WebSocket 接口。"""
 from enum import Enum
-from typing import Any, Literal
+from typing import Any, Literal, cast
 import asyncio
 import json
 from datetime import datetime, timedelta
@@ -39,7 +39,7 @@ from vnpy.trader.utility import load_json, get_file_path
 SETTING_FILENAME = "web_trader_setting.json"
 SETTING_FILEPATH = get_file_path(SETTING_FILENAME)
 
-setting: dict = load_json(SETTING_FILEPATH)
+setting: dict = load_json(str(SETTING_FILEPATH))
 USERNAME = setting["username"]              # 用户名
 PASSWORD = setting["password"]              # 密码
 REQ_ADDRESS = setting["req_address"]        # 请求服务地址
@@ -58,7 +58,7 @@ pwd_context: CryptContext = CryptContext(schemes=["sha256_crypt"], deprecated="a
 oauth2_scheme: OAuth2PasswordBearer = OAuth2PasswordBearer(tokenUrl="token")
 
 # RPC客户端
-rpc_client: RpcClient = None
+rpc_client: RpcClient | None = None
 
 
 def to_dict(o: object) -> dict:
@@ -163,7 +163,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()) -> dict:  # noqa: B0
 @app.post("/tick/{vt_symbol}")
 def subscribe(vt_symbol: str, access: bool = Depends(get_access)) -> None:
     """订阅行情"""
-    contract: ContractData | None = rpc_client.get_contract(vt_symbol)
+    client: RpcClient = cast(RpcClient, rpc_client)
+    contract: ContractData | None = client.get_contract(vt_symbol)
     if not contract:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -172,13 +173,14 @@ def subscribe(vt_symbol: str, access: bool = Depends(get_access)) -> None:
         )
 
     req: SubscribeRequest = SubscribeRequest(contract.symbol, contract.exchange)
-    rpc_client.subscribe(req, contract.gateway_name)
+    client.subscribe(req, contract.gateway_name)
 
 
 @app.get("/tick")
 def get_all_ticks(access: bool = Depends(get_access)) -> list:
     """查询行情信息"""
-    ticks: list[TickData] = rpc_client.get_all_ticks()
+    client: RpcClient = cast(RpcClient, rpc_client)
+    ticks: list[TickData] = client.get_all_ticks()
     return [to_dict(tick) for tick in ticks]
 
 
@@ -198,8 +200,9 @@ class OrderRequestModel(BaseModel):
 def send_order(model: OrderRequestModel, access: bool = Depends(get_access)) -> str:
     """委托下单"""
     req: OrderRequest = OrderRequest(**model.__dict__)
+    client: RpcClient = cast(RpcClient, rpc_client)
 
-    contract: ContractData | None = rpc_client.get_contract(req.vt_symbol)
+    contract: ContractData | None = client.get_contract(req.vt_symbol)
     if not contract:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -207,14 +210,15 @@ def send_order(model: OrderRequestModel, access: bool = Depends(get_access)) -> 
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    vt_orderid: str = rpc_client.send_order(req, contract.gateway_name)
+    vt_orderid: str = client.send_order(req, contract.gateway_name)
     return vt_orderid
 
 
 @app.delete("/order/{vt_orderid}")
 def cancel_order(vt_orderid: str, access: bool = Depends(get_access)) -> None:
     """委托撤单"""
-    order: OrderData | None = rpc_client.get_order(vt_orderid)
+    client: RpcClient = cast(RpcClient, rpc_client)
+    order: OrderData | None = client.get_order(vt_orderid)
     if not order:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -223,41 +227,46 @@ def cancel_order(vt_orderid: str, access: bool = Depends(get_access)) -> None:
         )
 
     req: CancelRequest = order.create_cancel_request()
-    rpc_client.cancel_order(req, order.gateway_name)
+    client.cancel_order(req, order.gateway_name)
 
 
 @app.get("/order")
 def get_all_orders(access: bool = Depends(get_access)) -> list:
     """查询委托信息"""
-    orders: list[OrderData] = rpc_client.get_all_orders()
+    client: RpcClient = cast(RpcClient, rpc_client)
+    orders: list[OrderData] = client.get_all_orders()
     return [to_dict(order) for order in orders]
 
 
 @app.get("/trade")
 def get_all_trades(access: bool = Depends(get_access)) -> list:
     """查询成交信息"""
-    trades: list[TradeData] = rpc_client.get_all_trades()
+    client: RpcClient = cast(RpcClient, rpc_client)
+    trades: list[TradeData] = client.get_all_trades()
     return [to_dict(trade) for trade in trades]
 
 
 @app.get("/position")
 def get_all_positions(access: bool = Depends(get_access)) -> list:
     """查询持仓信息"""
-    positions: list[PositionData] = rpc_client.get_all_positions()
+    client: RpcClient = cast(RpcClient, rpc_client)
+    positions: list[PositionData] = client.get_all_positions()
     return [to_dict(position) for position in positions]
 
 
 @app.get("/account")
 def get_all_accounts(access: bool = Depends(get_access)) -> list:
     """查询账户资金"""
-    accounts: list[AccountData] = rpc_client.get_all_accounts()
+    client: RpcClient = cast(RpcClient, rpc_client)
+    accounts: list[AccountData] = client.get_all_accounts()
     return [to_dict(account) for account in accounts]
 
 
 @app.get("/contract")
 def get_all_contracts(access: bool = Depends(get_access)) -> list:
     """查询合约信息"""
-    contracts: list[ContractData] = rpc_client.get_all_contracts()
+    client: RpcClient = cast(RpcClient, rpc_client)
+    contracts: list[ContractData] = client.get_all_contracts()
     return [to_dict(contract) for contract in contracts]
 
 
@@ -332,13 +341,14 @@ def rpc_callback(topic: str, data: Any) -> None:
 def startup_event() -> None:
     """应用启动事件"""
     global rpc_client
-    rpc_client = RpcClient()
-    rpc_client.callback = rpc_callback
-    rpc_client.subscribe_topic("")
-    rpc_client.start(REQ_ADDRESS, SUB_ADDRESS)
+    client: RpcClient = RpcClient()
+    object.__setattr__(client, "callback", rpc_callback)
+    client.subscribe_topic("")
+    client.start(REQ_ADDRESS, SUB_ADDRESS)
+    rpc_client = client
 
 
 @app.on_event("shutdown")
 def shutdown_event() -> None:
     """应用停止事件"""
-    rpc_client.stop()
+    cast(RpcClient, rpc_client).stop()
