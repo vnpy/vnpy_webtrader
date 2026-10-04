@@ -11,7 +11,7 @@ from vnpy.trader.event import (
 from vnpy.event import EventEngine, Event
 
 
-APP_NAME = "RpcService"
+APP_NAME: str = "RpcService"
 
 
 class WebEngine(BaseEngine):

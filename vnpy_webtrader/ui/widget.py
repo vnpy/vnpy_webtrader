@@ -125,6 +125,7 @@ class WebManager(QtWidgets.QWidget):
         """Web进程启动"""
         self.text_edit.append("Web服务器启动")
 
+        w: QtWidgets.QWidget
         for w in [
             self.username_line,
             self.password_line,
@@ -142,6 +143,7 @@ class WebManager(QtWidgets.QWidget):
         """Web进程结束"""
         self.text_edit.append("Web服务器停止")
 
+        w: QtWidgets.QWidget
         for w in [
             self.username_line,
             self.password_line,

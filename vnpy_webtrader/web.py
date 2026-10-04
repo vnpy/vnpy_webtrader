@@ -1,6 +1,6 @@
 """Web 交易的 HTTP 和 WebSocket 接口。"""
 from enum import Enum
-from typing import Any, Literal, cast
+from typing import Any, Literal, TextIO, cast
 import asyncio
 import json
 from datetime import datetime, timedelta
@@ -36,19 +36,19 @@ from vnpy.trader.utility import load_json, get_file_path
 
 
 # Web服务运行配置
-SETTING_FILENAME = "web_trader_setting.json"
-SETTING_FILEPATH = get_file_path(SETTING_FILENAME)
+SETTING_FILENAME: str = "web_trader_setting.json"
+SETTING_FILEPATH: Path = get_file_path(SETTING_FILENAME)
 
 setting: dict = load_json(str(SETTING_FILEPATH))
-USERNAME = setting["username"]              # 用户名
-PASSWORD = setting["password"]              # 密码
-REQ_ADDRESS = setting["req_address"]        # 请求服务地址
-SUB_ADDRESS = setting["sub_address"]        # 订阅服务地址
+USERNAME: str = setting["username"]              # 用户名
+PASSWORD: str = setting["password"]              # 密码
+REQ_ADDRESS: str = setting["req_address"]        # 请求服务地址
+SUB_ADDRESS: str = setting["sub_address"]        # 订阅服务地址
 
 
-SECRET_KEY = "test"                     # 数据加密密钥
-ALGORITHM = "HS256"                     # 加密算法
-ACCESS_TOKEN_EXPIRE_MINUTES = 30        # 令牌超时（分钟）
+SECRET_KEY: str = "test"                     # 数据加密密钥
+ALGORITHM: str = "HS256"                     # 加密算法
+ACCESS_TOKEN_EXPIRE_MINUTES: int = 30        # 令牌超时（分钟）
 
 
 # 实例化CryptContext用于处理哈希密码
@@ -64,6 +64,8 @@ rpc_client: RpcClient | None = None
 def to_dict(o: object) -> dict:
     """将对象转换为字典"""
     data: dict = {}
+    k: str
+    v: object
     for k, v in o.__dict__.items():
         if isinstance(v, Enum):
             data[k] = v.value
@@ -82,7 +84,7 @@ class Token(BaseModel):
 
 def authenticate_user(current_username: str, username: str, password: str) -> str | Literal[False]:
     """校验用户"""
-    hashed_password = pwd_context.hash(PASSWORD)
+    hashed_password: str = pwd_context.hash(PASSWORD)
 
     if not secrets.compare_digest(current_username, username):
         return False
@@ -114,9 +116,10 @@ async def get_access(token: str = Depends(oauth2_scheme)) -> bool:
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    err: JWTError
     try:
         payload: dict = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username_value = payload.get("sub")
+        username_value: str | None = payload.get("sub")
         if username_value is None:
             raise credentials_exception
         username: str = username_value
@@ -137,6 +140,7 @@ app: FastAPI = FastAPI()
 def index() -> HTMLResponse:
     """获取主页面"""
     index_path: Path = Path(__file__).parent.joinpath("static/index.html")
+    f: TextIO
     with open(index_path) as f:
         content: str = f.read()
 
@@ -146,7 +150,7 @@ def index() -> HTMLResponse:
 @app.post("/token", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends()) -> dict:  # noqa: B008
     """用户登录"""
-    auth_result = authenticate_user(USERNAME, form_data.username, form_data.password)
+    auth_result: str | Literal[False] = authenticate_user(USERNAME, form_data.username, form_data.password)
     if not auth_result:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -292,7 +296,7 @@ async def get_websocket_access(
         raise credentials_exception
     else:
         payload: dict = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username_value = payload.get("sub")
+        username_value: str | None = payload.get("sub")
         if username_value is None:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             raise credentials_exception
@@ -320,6 +324,7 @@ async def websocket_endpoint(websocket: WebSocket, access: bool = Depends(get_we
 
 async def websocket_broadcast(msg: str) -> None:
     """Websocket数据广播"""
+    websocket: WebSocket
     for websocket in active_websockets:
         await websocket.send_text(msg)
 
